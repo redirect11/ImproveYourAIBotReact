@@ -15,8 +15,8 @@ export const ConfirmDeleteAssistant = ({ assistant, onConfirm, onCancel, closeMo
     return (
         <div>
             <p>Sei sicuro di voler cancellare l'assistente {assistant.name}?</p>
-            <button onClick={() => onConfirm(assistant.id, closeModal)}>Sì</button>
-            <button onClick={() => onCancel(closeModal)}>No</button>
+            <button className="btn" onClick={() => onConfirm(assistant.id, closeModal)}>Sì</button>
+            <button className="btn right-0" onClick={() => onCancel(closeModal)}>No</button>
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import VideoAiChatbot from './components/VideoAiChatbot';
+import VideoAiChatbot from './components/Chatbot/VideoAiChatbot';
 import { StrictMode } from 'react';
 
 const root = createRoot(document.getElementById('openai-chatbot'));

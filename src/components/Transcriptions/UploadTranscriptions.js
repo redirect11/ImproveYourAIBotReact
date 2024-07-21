@@ -1,10 +1,13 @@
-import { Panel, PanelBody, PanelRow } from '@wordpress/components';
-import React, { useEffect, useState, useMemo } from 'react';
-import { Button, TextControl, TextareaControl } from '@wordpress/components';
+import { Panel, PanelBody} from '@wordpress/components';
+import React, { useEffect, useRef, useState, forwardRef } from 'react';
+import { Button } from '@wordpress/components';
 import { FormFileUpload } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import TranscriptionsDataView from './TranscriptionsDataView';
 import useUploadTranscription from '../../hooks/useUploadTranscription';
+import { useDispatch as useDispatchWordpress } from '@wordpress/data';
+import { store as noticesStore } from '@wordpress/notices';
+import { useHeader } from '../HeaderContext';
 
 
 const UploadButton = ( { onClick } ) => {
@@ -15,31 +18,52 @@ const UploadButton = ( { onClick } ) => {
     );
 };
 
-const Result = ({ status }) => {
-    console.log('Result', status);
-        if (status === "success") {
-            return <p>✅ Files uploaded successfully!</p>;
-        } else if (status === "fail") {
-            return <p>❌ Files upload failed!</p>;
-        } else if (status === "uploading") {
-            return <p>⏳ Uploading files...</p>;
-        } else {
-            return null;
-        }
-};
-
-const UploadTranscriptions = () => {
-
-    console.log('Start rendering UploadTranscriptions');
+const UploadTranscriptions = ( { mutateTranscriptions }) => {
+    const { createSuccessNotice, createErrorNotice } = useDispatchWordpress( noticesStore );
     const [files, setFiles] = useState([]);
     const [allTranscriptions, setAllTranscriptions] = useState([]);
     const [uploadCounter, setUploadCounter] = useState(0);
     const {data, error, isLoading, startUpload} = useUploadTranscription();
-    console.log('useUploadTranscription', data, error, isLoading);
+    
+    const { addButton, hideButton, updateTranscriptionsUploadStatus } = useHeader();
+    
+    const uploadButtonClickRef = useRef(null);
+    const addFilesButtonClickRef = useRef(null);
 
+    
     const isUploading = () => {
-        return isLoading || (uploadCounter > 0 && (uploadCounter < allTranscriptions.length - 1));
+        return isLoading || (uploadCounter > 0 && (uploadCounter < allTranscriptions.length));
     }
+
+    useEffect(() => {
+        if(allTranscriptions && allTranscriptions.length > 0) {
+            let uploadButtonClassName = "btn btn-sm btn-accent btn-outline mx-1"
+            if(isUploading()) {
+                uploadButtonClassName = "btn btn-sm btn-disabled mx-1 text-gray-500";
+            }
+            console.log("uploadButtonClassName", uploadButtonClassName);
+            uploadButtonClickRef.current =  handleUpload;
+            const button = {
+                id: 'upload',
+                label: 'Upload di tutte le trascrizioni',
+                className: uploadButtonClassName,
+                onClick: uploadButtonClickRef.current
+            };
+            const addFilesButton = {
+                label: 'Aggiungi altri file',
+                className: "btn btn-sm btn-accent btn-outline mx-1",
+                onClick: () => { addFilesButtonClickRef.current.click() }
+            };
+
+            addButton(button);
+            addButton(addFilesButton);
+            return () => {
+                hideButton(button.label);
+                hideButton(addFilesButton.label);
+            };
+        } 
+    }, [allTranscriptions, uploadCounter. data, error, mutateTranscriptions, files]);
+
 
     const getStatus = () => {
         if(isUploading()) {
@@ -52,96 +76,84 @@ const UploadTranscriptions = () => {
         return "";
     };
 
-    let status = getStatus();
-
-    //const setTranscriptionUploaded = (transcription) => {
+    //updateTranscriptionsUploadStatus(getStatus());
 
     useEffect(() => {
-        console.log('useEffect data error isLoading', data, error, isLoading);
         if((data && data.error) || error) {
-            console.log('Received data and counter is out of range', uploadCounter);
-
+            createErrorNotice('Error: ' + (data ? data.error : error.message));
         } else if(data) {
-            if( uploadCounter < allTranscriptions.length - 1) {
-                console.log('Received data and counter is in range', uploadCounter);
+            if( uploadCounter <= allTranscriptions.length - 1) {
+                const updatedTranscriptions = allTranscriptions.map(transcription => {
+                    if(transcription.file_id === allTranscriptions[uploadCounter].file_id) {
+                        return {...transcription, uploaded: true};
+                    }
+                    return transcription;
+                });
+                setAllTranscriptions(updatedTranscriptions);
                 setUploadCounter(uploadCounter + 1);
-                const updatedTranscriptions = allTranscriptions.map(transcription => {
-                    if(transcription.file_id === allTranscriptions[uploadCounter].file_id) {
-                        return {...transcription, uploaded: true};
-                    }
-                    return transcription;
-                });
-                setAllTranscriptions(updatedTranscriptions);
-            } else if (uploadCounter === allTranscriptions.length - 1) {
-                console.log('Received data and counter is out of range', uploadCounter);
-                const updatedTranscriptions = allTranscriptions.map(transcription => {
-                    if(transcription.file_id === allTranscriptions[uploadCounter].file_id) {
-                        return {...transcription, uploaded: true};
-                    }
-                    return transcription;
-                });
-                setAllTranscriptions(updatedTranscriptions);
-            }
-            console.log('useEffect data error isLoading EXIT', data, error, isLoading);
+            } 
+            createSuccessNotice('Trascrizione caricata');
         }
 
     }, [data,error]);
 
     useEffect(() => {
-        console.log('useEffect uploadCounter', uploadCounter);
         if(uploadCounter > 0 && uploadCounter < allTranscriptions.length) {
             startUpload(allTranscriptions[uploadCounter]);
-        } 
-        console.log('useEffect uploadCounter EXIT', uploadCounter);
+        } else if(uploadCounter === allTranscriptions.length && allTranscriptions.length > 0) {
+            createSuccessNotice('Tutte le trascrizioni caricate.');
+            mutateTranscriptions();
+        }
+        updateTranscriptionsUploadStatus(getStatus());
     }, [uploadCounter]);
 
 
     const handleFileChange = (event) => {
-        console.log(event.target.files);
         setFiles(event.target.files);
 
         const transcriptionSize = allTranscriptions.length;
 
         for (let i = 0; i < event.target.files.length; i++) {
-            const file = event.target.files[i];
-            const fileReader = new FileReader();
-            fileReader.readAsText(file, "UTF-8");
-            fileReader.onload = e => {
-                const fullTranscription = {
-                    file_name: file.name,
-                    transcription: JSON.parse(e.target.result),
-                    file_id: transcriptionSize + i + 1,
-                    assistant_id: [],
-                    assistant_name: null,
-                    uploaded: false,
+            try {
+                const file = event.target.files[i];
+                const fileReader = new FileReader();
+                fileReader.readAsText(file, "UTF-8");
+                fileReader.onload = e => {
+                    const fullTranscription = {
+                        file_name: file.name,
+                        transcription: JSON.parse(e.target.result),
+                        file_id: transcriptionSize + i + 1,
+                        assistant_id: [],
+                        assistant_name: null,
+                        uploaded: false,
+                    };
+
+                    setAllTranscriptions(prevTranscriptions => [...prevTranscriptions, fullTranscription]);
                 };
-
-                setAllTranscriptions(prevTranscriptions => [...prevTranscriptions, fullTranscription]);
-
-            };
+            } catch (error) {
+                createErrorNotice('Error: ' + error.message);
+            }
         }
     };        
 
     const handleUpload = async () => {
-        // if (!files || files.length === 0) {
-        //     setMessage('Please select a file and enter an assistant ID.');
-        //     return;
-        // }
-        console.log('setUploadCounter');
-        if(allTranscriptions[uploadCounter]) {
+        if(!isUploading()) {
             setUploadCounter(0);
             const updatedTranscriptions = allTranscriptions.map(transcription => {
                 return {...transcription, uploaded: false};
             });
             setAllTranscriptions(updatedTranscriptions);
             startUpload(allTranscriptions[0]);
+            updateTranscriptionsUploadStatus('uploading');
         }
     };
+
+    // const handleAddOtherFiles = () => {
+    //     inputFileRef.current.click();
+    // };
     
     const handleSaveTranscription = (newTranscription) => {
-        console.log('handleSaveTranscription', newTranscription, newTranscription.file_id);
         const updatedTranscriptions = allTranscriptions.map(transcription => {
-            console.log('transcription.file_id', transcription.file_id);
             if(transcription.file_id === newTranscription.file_id) {
                 return newTranscription;
             } 
@@ -149,7 +161,6 @@ const UploadTranscriptions = () => {
         });
       
         setAllTranscriptions(updatedTranscriptions);
-        //setMessage('Transcription saved successfully.');
     };
 
     const handleDeleteTranscription = (file_id) => {
@@ -157,43 +168,38 @@ const UploadTranscriptions = () => {
         setAllTranscriptions(updatedTranscriptions);
     };
 
-    console.log('End rendering UploadTranscriptions');
 
     return ( 
-        <div>
-            <Panel>
-                <PanelBody>
-                    <h3>Carica Trascrizioni</h3>
-                    <FormFileUpload
-                        multiple={true}
-                        accept="application/JSON"
-                        onChange={ handleFileChange } 
-                        render={ ( { openFileDialog } ) => (
-                            <div>
-                                <Button variant="secondary" onClick={ openFileDialog }>
-                                    Scegli file
-                                </Button>
-                            </div>
-                        )}
-                    >
-                        { __( 'Carica trascrizione', 'video-ai-chatbot') }
+        <>
+            {!files || files.length === 0 &&
 
-                    </FormFileUpload>
-                    {files && files.length > 0 && 
-                        <> 
-                            <TranscriptionsDataView 
-                                transcriptions={allTranscriptions} 
-                                onSavingTranscription={handleSaveTranscription} 
-                                onDeletingTranscription={handleDeleteTranscription} 
-                            />
-                            <UploadButton onClick={  handleUpload  } />
-                            { status !== "" && <Result status={status} /> }
-                            
-                        </>
-                    }
-                </PanelBody>
-            </Panel>
-        </div>
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                <h2 className="mb-4 text-xl font-semibold text-gray-700">Scegli le trascrizioni da caricare</h2>
+                <label className="inline-block mb-2 text-gray-500">File Upload</label>
+                <div className="flex justify-center items-center w-full">
+                    <label className="flex flex-col w-full h-32 border-4 border-dashed hover:bg-gray-100 hover:border-gray-300 rounded-md">
+                    <div className="flex flex-col items-center justify-center pt-7">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V8m4 8V8m4 8V8M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p className="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">Seleziona un file</p>
+                    </div>
+                    <input type="file" hidden id="file" className="opacity-0" multiple onChange={ handleFileChange } accept="application/JSON" />
+                    </label>
+                </div>
+            </div>}
+
+            {files && files.length > 0 && 
+                <div className="relative flex flex-col h-fit w-full">
+                    <TranscriptionsDataView 
+                        transcriptions={allTranscriptions} 
+                        onSavingTranscription={handleSaveTranscription} 
+                        onDeletingTranscription={handleDeleteTranscription} 
+                    />
+                    <input type="file" hidden id="otherFile" className="opacity-0" multiple ref={addFilesButtonClickRef} onChange={ handleFileChange } accept="application/JSON" />
+                </div>
+            }
+        </>
     );
 };
 

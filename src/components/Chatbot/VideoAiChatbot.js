@@ -1,9 +1,9 @@
 // src/App.js
-import React, { useEffect, useState } from 'react';
-import Chatbot, { createChatBotMessage, createCustomMessage } from 'react-chatbot-kit';
-import config from '../config';
-import MessageParser from '../messageParser';
-import ActionProvider from '../actionProvider';
+import React, { useState } from 'react';
+import Chatbot, { createChatBotMessage } from 'react-chatbot-kit';
+import config from './config';
+import MessageParser from './messageParser';
+import ActionProvider from './actionProvider';
 import 'react-chatbot-kit/build/main.css'
 import SVG from 'react-inlinesvg'; 
 

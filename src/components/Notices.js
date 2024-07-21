@@ -6,15 +6,29 @@ import { store as noticesStore } from '@wordpress/notices';
 
 const Notices = () => {
     const { removeNotice } = useDispatchWordpress( noticesStore );
-    const notices = useSelect( ( select ) =>
-        select( noticesStore ).getNotices()
-    );
+    const notices = useSelect( ( select ) => {
+        return select( noticesStore ).getNotices()
+    });
 
-    if ( notices.length === 0 ) {
+    // mappo e riduco le notices duplicate, aggiungendo al content il numero di notifiche duplicate
+    const uniqueNotices = notices.reduce((acc, notice) => {
+        const existingNotice = acc.find( n => n.content === notice.content || n.content === `${notice.content} (${notice.count})` );
+        if ( existingNotice ) {
+            existingNotice.content = `${existingNotice.content} (${existingNotice.count + 1})`;
+            existingNotice.count += 1;
+        } else {
+            acc.push({ ...notice, count: 1 });
+        }
+        return acc;
+    }, []);
+
+    console.log('Notices', uniqueNotices);
+
+    if ( uniqueNotices.length === 0 ) {
         return null;
     }
 
-    return <NoticeList notices={ notices } onRemove={ removeNotice } />;
+    return <NoticeList notices={ uniqueNotices } onRemove={ removeNotice } />;
 };
 
 export default Notices;

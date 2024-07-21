@@ -40,15 +40,13 @@ const AssistantFileForm = ({ file_name, file_text, editable, onFileTextChange })
                     style={ { opacity: 0.5 } }/>
             </Disabled>
             <br />
-            <WithDisabled disabled={!editable}>
-                <TextareaControl
-                    label="File Content"
-                    //ref={textareaRef}
-                    value={file_text}
-                    onChange={(value) => handleTextChange(value)}
-                    rows={20}/>
-                    
-            </WithDisabled>                                
+            <TextareaControl
+                label="File Content"
+                //ref={textareaRef}
+                value={file_text}
+                onChange={(value) => handleTextChange(value)}
+                rows={20}
+                readOnly={!editable}/>                             
         </>
     );
 };

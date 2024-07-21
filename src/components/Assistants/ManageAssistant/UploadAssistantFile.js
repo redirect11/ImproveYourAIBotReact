@@ -92,7 +92,7 @@ const UploadAssistantFile = ({ assistant, shouldUpload, onUploadFinished }) => {
         <>
             <h3>Carica File Preventivi</h3>
             <FormFileUpload
-                accept="application/JSON"
+                accept="application/JSON, text/*"
                 onChange={ handleFileChange } 
                 render={ ( { openFileDialog } ) => (
                     <div>

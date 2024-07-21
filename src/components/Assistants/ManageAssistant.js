@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch as useDispatchWordpress } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
@@ -6,24 +6,31 @@ import { store as noticesStore } from '@wordpress/notices';
 import { Button, 
          TextControl, 
          TextareaControl, 
-         PanelRow,
+         Panel,
          PanelBody,
          SelectControl } from '@wordpress/components';
 import TranscriptionSelector from './ManageAssistant/TranscriptionSelector';
 import UploadAssistantFile from './ManageAssistant/UploadAssistantFile';
 import FetchableAssistantFileForm from './ManageAssistant/FetchableAssistantFileForm';
+import useAuth from '../../hooks/useAuth';
+import { useHeader } from '../HeaderContext';
+import { setSelectedAssistant } from '../../redux/slices/AssistantsSlice';
 
-const ManageAssistant = ({assistant}) => {
+const ManageAssistant = ({assistant, mutateData}) => {
 
-    console.log('ManageAssistant');
     const [name, setName] = useState(assistant ? assistant.name : '');
     const [prompt, setPrompt] = useState(assistant ? assistant.instructions : '');
     const [assistantType, setAssistantType] = useState(assistant ? assistant.metadata.type : 'trascrizioni'); //TODO remove hardcoded value
     const [uploadStarted, setUploadStarted] = useState(false);
     const [selectedFileIds, setSelectedFileIds] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const title = assistant ? __( 'Modifica Assistente', 'video-ai-chatbot' ) : __( 'Crea Assistente', 'video-ai-chatbot' );
-    const initialOpen = assistant ? true : false;
+    console.log('name', name);
+    console.log('prompt', prompt);
+    console.log('assistantType', assistantType);
+    console.log('selectedFileIds', selectedFileIds);
+
+    const { token, baseUrl }  = useAuth();
 
     const selectOptions = [ //TODO make it dynamic
         {
@@ -42,32 +49,37 @@ const ManageAssistant = ({assistant}) => {
         vector_store_ids = assistant.tool_resources.file_search.vector_store_ids;           
     }
 
-    useEffect(() => {
-        console.log('ManageAssistant useEffect');
-        if(assistant) {
-            setName(assistant.name);
-            setPrompt(assistant.instructions);
-            if(assistant.metadata && assistant.metadata.type) {
-                setAssistantType(assistant.metadata.type);
-
-            } else {
-                setAssistantType('trascrizioni');
-            }
-        }
-        else {
-            setAssistantType('trascrizioni');
-        }
-        console.log('ManageAssistant useEffect END');
-    }, [assistant]);
 
     const { createSuccessNotice, createErrorNotice } = useDispatchWordpress( noticesStore );
 
+    const { addButton, hideButton } = useHeader();
+
+    const saveButtonClickRef = useRef(null);
+
+
+    useEffect(() => {
+        const saveButtonDisabled = !(prompt && name && selectedFileIds.length > 0) ? "disabled" : "";
+
+        const saveButtonClassName = "btn btn-sm btn-accent btn-outline mx-1 " + saveButtonDisabled;
+        saveButtonClickRef.current = handleCreateAssistant;
+        console.log('saveButtonClassName', saveButtonClassName);
+        const button = {
+            label: 'Salva assistente corrente',
+            className: saveButtonClassName,
+            onClick: saveButtonClickRef.current
+        };
+        addButton(button);
+        return () => {
+            hideButton(button.label);
+        };
+    }, [assistant, name, prompt, selectedFileIds, assistantType]);
+
     const callCreateAssistantApi = async (request) => {
-        const response = await fetch('/wp-json/video-ai-chatbot/v1/' + (assistant ? 'update-assistant/' : 'create-assistant/'), {
+        const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/` + (assistant ? 'update-assistant/' : 'create-assistant/'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-WP-Nonce': window.adminData.nonce
+                'Authorization': 'Bearer ' + token,	
             },
             body: JSON.stringify(request),
         });
@@ -83,15 +95,16 @@ const ManageAssistant = ({assistant}) => {
                 setAssistantType('trascrizioni');
             }
             //setTimeout(() => window.location.reload(), 2000);
+            mutateData();
         } else {
             createErrorNotice( __('Errore nella creazione dell\'assistente.', 'video-ai-chatbot'));
         }
     }
 
     const handleCreateAssistant = async () => {
-        console.log('handleCreateAssistant');
+        console.log('handleCreateAssistant', name, prompt, selectedFileIds, assistantType);
         if(assistant) {
-
+            console.log('assistant', assistant);
             let request = {
                 id: assistant.id,
                 name: name,
@@ -104,7 +117,6 @@ const ManageAssistant = ({assistant}) => {
             callCreateAssistantApi(request);
 
         } else if (!assistant && assistantType === 'trascrizioni') {
-
             let request = {
                 name: name,
                 prompt: prompt,
@@ -112,52 +124,68 @@ const ManageAssistant = ({assistant}) => {
                 type: assistantType
             }
 
+            console.log('request', request);
+
             callCreateAssistantApi(request);
 
         }  else {
-            console.log('setUploadStarted'); 
             setUploadStarted(true);
         }
 
     };
 
-    const handleUploadFinished = (fileId) => {
+    const handleUploadFinished = useCallback((fileId) => {
+        let fileIds = [];
         if(fileId) {
-            console.log('handleUploadFinished', fileId);
-            setSelectedFileIds([...selectedFileIds, fileId]);
+            fileIds = [...selectedFileIds, fileId];
+            setSelectedFileIds(fileIds);
         } else {
             createErrorNotice( __('Errore nel caricamento del file', 'video-ai-chatbot'));
             return;
         }
-        setUploadStarted(false);
-
         let request = {
             name: name,
             prompt: prompt,
-            files: selectedFileIds,
+            files: fileIds,
             type: assistantType
         }
+        setUploadStarted(false);
         callCreateAssistantApi(request);
-    };
+    },[selectedFileIds, name, prompt, assistantType, assistant]);
 
-    const handleSelectTranscriptions = (transcriptions) => {
-        console.log('transcriptions', transcriptions);
-        const files = transcriptions.map(({ file_id }) => file_id);
-        setSelectedFileIds(files);
-    };
+    const handleSelectTranscriptions = useCallback((transcriptions) => {
+        console.log('handleSelectTranscriptions transcriptions', transcriptions);
+        const files = transcriptions?.map(({ file_id }) => file_id);
+        console.log('handleSelectTranscriptions files', files);
+        setSelectedFileIds(files || []);
+    }, [selectedFileIds, assistant]);
 
-    const handleFileDataFetched = (file_name, file_content, file_id) => {
+    const handleFileDataFetched = useCallback((file_name, file_content, file_id) => {
         console.log('handleFileDataFetched', file_name, file_content, file_id);
+        if(file_id === '') return;
+        let fileIds = [...selectedFileIds, file_id];
+        console.log('handleFileDataFetched fileIds', fileIds);  
         setSelectedFileIds([...selectedFileIds, file_id]);
-    };
+    },[selectedFileIds, assistant]);
     
-
+            // <PanelBody                    
+        //     title={ title }
+        //     initialOpen={ initialOpen }>
+    let header = assistant ? "Modifica Assistente" : "Nuovo Assistente";
     return (
-        <PanelBody                    
-            title={ title }
-            initialOpen={ initialOpen }>
-            <PanelRow> {/*TODO extract component*/}
-                <div style={{ width: "100%", height: "100%", marginRight: "10px" }}>
+        <>
+        <Panel header={header} className='assistant flex-1 w-full mx-2 h-full overflow-y-auto'>
+            <PanelBody className='relative flex flex-col h-full'>
+                { !assistant && (
+                    <>
+                        <SelectControl
+                            label="Seleziona Tipo di Assistente"
+                            options={ selectOptions } 
+                            onChange={ setAssistantType }
+                            value={ assistantType }
+                        />
+                    </>
+                )}
                     <TextControl
                         label="Nome"
                         value={  name }
@@ -170,17 +198,11 @@ const ManageAssistant = ({assistant}) => {
                         value={ prompt }
                         onChange={ (value) => setPrompt(value) }
                     />
-                    <Button variant="primary" onClick={() => { handleCreateAssistant() }}>Salva</Button>
-                </div>
-                <div style={{ width: "100%", height: "100%", marginLeft: "10px" }}>
-                    { !assistant && (
-                        <SelectControl
-                            label="Seleziona Tipo di Assistente"
-                            options={ selectOptions } 
-                            onChange={ setAssistantType }
-                            value={ assistantType }
-                        />
-                    )}
+            </PanelBody>
+        </Panel>
+        <Panel className='flex-1 w-full mx-2 h-full overflow-y-auto'>
+            <PanelBody> 
+                <div >
                     {assistantType === 'preventivi' && (
                         <div>
                             { assistant && (
@@ -194,14 +216,15 @@ const ManageAssistant = ({assistant}) => {
                         </div>
                     )}
                     {assistantType === 'trascrizioni' && (
-                        <div>
-                            <h3>Seleziona Trascrizioni</h3>
-                            <TranscriptionSelector onSelectionChange={(transcription) => { return handleSelectTranscriptions(transcription)}} assistant={assistant} />
+                        <div >
+                            <h2>Seleziona Trascrizioni</h2>
+                            <TranscriptionSelector onSelectionChange={handleSelectTranscriptions} assistant={assistant} />
                         </div>
                     )}
                 </div>
-            </PanelRow>
-        </PanelBody>
+                </PanelBody>
+                </Panel>
+        </>
     );
 };
 ManageAssistant.propTypes = {

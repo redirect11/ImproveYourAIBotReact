@@ -1,30 +1,28 @@
 import useSWR from 'swr'
-import { deleteFetcher } from './fetcher';
+import { deleteAuthFetcher } from './fetcher';
 import { useState } from 'react';
+import useAuth from './useAuth';
+import { config } from '../Constants';
 
 const useDeleteAssistant = () => {
 
-    const [assistantId, setAssistantId] = useState(null);
+    const {token, baseUrl} = useAuth();
 
-    console.log('useDeleteAssistant');
+    const [assistantId, setAssistantId] = useState(null);
 
     const startDelete = (assistantId) => {
         setAssistantId(assistantId);
     }
     
-    if((data || error) && assistantId ) {
-        console.log('data', data);
-        console.log('error', error);
-        console.log('isLoading', isLoading);
-        console.log('reset assistantId');
-        setAssistantId(null);
-    }
 
-    const { data, error, isLoading } = useSWR( assistantId ? [
-                                                `/wp-json/video-ai-chatbot/v1/delete-assistant/${assistantId}` , 
-                                                window.adminData.nonce
+    const { data, error, isLoading } = useSWR( assistantId && baseUrl && token ? [
+                                                `${baseUrl}/wp-json/video-ai-chatbot/v1/delete-assistant/${assistantId}` , 
+                                                token
                                                 ] : null , 
-                                                ([url, token]) => deleteFetcher(url, token));
+                                                ([url, token]) => deleteAuthFetcher(url, token), 
+                                                { onError: () => setAssistantId(null), onSuccess: () => setAssistantId(null),
+                                                  revalidateOnFocus: false, revalidateOnReconnect: false, shouldRetryOnError: false
+                                                 });
     
     return { 
             deleteAssistant: startDelete,

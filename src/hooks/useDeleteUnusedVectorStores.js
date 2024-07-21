@@ -1,10 +1,14 @@
 import useSWR from 'swr'
-import { getFetcher } from './fetcher';
+import { getAuthFetcher } from './fetcher';
 import { useState } from 'react';
+import useAuth from './useAuth';
+import { config } from '../Constants';
 
 const useDeleteUnusedVectorStores = () => {
 
     console.log('useDeleteUnusedVectorStores');
+
+    const {token, baseUrl} = useAuth();
 
     const [started, setStarted] = useState(false);
 
@@ -25,11 +29,11 @@ const useDeleteUnusedVectorStores = () => {
         setStarted(false);
     }
 
-    const { data, error, isLoading } = useSWR(  started ? [
-                                                `/wp-json/video-ai-chatbot/v1/delete-unused-vector-stores` , 
-                                                window.adminData.nonce
+    const { data, error, isLoading } = useSWR(  started && token && baseUrl ? [
+                                                `${baseUrl}/wp-json/video-ai-chatbot/v1/delete-unused-vector-stores` , 
+                                                token
                                                 ] : null, 
-                                                ([url, token]) => getFetcher(url, token),
+                                                ([url, token]) => getAuthFetcher(url, token),
                                                 { onError: stop, onSuccess: stop }
                                             );
     if((data || error) && started) {

@@ -1,36 +1,23 @@
-import React, { useEffect, useState, useMemo, useRef, StrictMode } from 'react';
-import domReady from '@wordpress/dom-ready';
-import { createRoot } from '@wordpress/element';
+import React, { useEffect, useState, useMemo, useRef, StrictMode, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setAssistants, setSelectedAssistant } from './redux/slices/AssistantsSlice';
-import store from './redux/store';
-import { Provider } from 'react-redux';
-import ManageAssistant from './components/Assistants/ManageAssistant';
+import { setSelectedAssistant } from '../../redux/slices/AssistantsSlice';
+import { setTitle } from '../../redux/slices/HeaderTitleSlice';
+import ManageAssistant from './ManageAssistant';
 import { __ } from '@wordpress/i18n';
 import { Panel, PanelBody, PanelRow } from '@wordpress/components';
 import { DataViews } from '@wordpress/dataviews';
 import moment from 'moment';
-import './components/dataview.css';
-import { ConfirmDeleteAssistant } from './components/ConfirmDelete';
-import useDeleteAssistant from './hooks/useDeleteAssistant';
-import  Notices  from './components/Notices';
-import ManageQuoteAssistant from './components/Assistants/ManageAssistant/ManageQuoteAssistant';
+import '../dataview.css';
+import { ConfirmDeleteAssistant } from '../ConfirmDelete';
+import useDeleteAssistant from '../../hooks/useDeleteAssistant';
+import  Notices  from '../Notices';
+import { useDispatch as useDispatchWordpress } from '@wordpress/data';
+import { store as noticesStore } from '@wordpress/notices';
+import { CircularProgress } from '@material-ui/core';
+import useAssistants from '../../hooks/useAssistants';
+import useTranscriptions from '../../hooks/useTranscriptions';
+import { useHeader } from '../HeaderContext';
 
-// const registerCustomEntities = () => {
-//     const {getEntitiesByKind} = select('core');
-//     const namespace = 'video-ai-chatbot/v1';
-
-//     if (getEntitiesByKind(namespace).length === 0) {
-//         dispatch('core').addEntities([
-//         {
-//             label: 'Assistants',
-//             name: 'assistants',
-//             kind: namespace,
-//             baseURL: namespace + '/assistants'
-//         }
-//         ]);
-//     }
-// };
 
 const paginateArray = (array, page, perPage) => {
     const startIndex = (page - 1) * perPage;
@@ -39,9 +26,13 @@ const paginateArray = (array, page, perPage) => {
 };
 
 
-const AssistantsPage = () => {
-    const scrolDivRef = useRef(null);
-    const executeScroll = () => scrolDivRef.current.scrollIntoView()   
+const AssistantsPage = ()  => {
+    // const scrolDivRef = useRef(null);
+    // const executeScroll = () => scrolDivRef.current.scrollIntoView()   
+
+    const {createErrorNotice, createSuccessNotice} = useDispatchWordpress( noticesStore );
+
+    const [key, setKey] = useState(new Date().getTime());
 
     const actions=[
         {
@@ -77,9 +68,7 @@ const AssistantsPage = () => {
         {
             id: 'type',
             header: 'Tipo',
-            enableHiding: false,
             render: ( { item } ) => {
-                console.log('item:', item);
                 let type = item.metadata.type;
                 let capitalized = type.charAt(0).toUpperCase() + type.slice(1);
                 return (
@@ -100,24 +89,28 @@ const AssistantsPage = () => {
     ] 
 
     const dispatch = useDispatch();
-    const assistants = useSelector((state) => state.rootReducer.assistants.assistants); //todo change the json structure
-    //console.log(state)
+    const { data: assistants, mutate: mutateAssistants } = useAssistants(); //todo change the json structure
+    const { mutate: mutateTranscriptions } = useTranscriptions();
+    const [newAssistant, setNewAssistant] = useState(false);
+
+    const mutateData = () => {
+        mutateAssistants();
+        mutateTranscriptions();
+    }
     const selectedAssistant = useSelector((state) => state.rootReducer.assistants.selectedAssistant);
-    console.log('assistants:', assistants);
 
     const { deleteAssistant, data, error, isLoading } = useDeleteAssistant();
     const [ view, setView ] = useState( {
-        type: 'table',
+        type: 'list',
         perPage: 10,
         page: 1,
         sort: {},
-        search: '',
-        // filters: [
-        //     { field: 'author', operator: 'is', value: 2 },
-        //     { field: 'status', operator: 'isAny', value: [ 'publish', 'draft' ] }
-        // ],
-        hiddenFields: [],
-        layout: {},
+        hiddenFields: [ 'created_at' ],
+        fields: [ 'name', 'type' ],
+        layout: { 
+            mediaField: 'name',	
+            primaryField: 'name'
+         },
     } );
 
     //TODO REMOVE
@@ -132,92 +125,93 @@ const AssistantsPage = () => {
         totalPages: Math.ceil(assistants.length / view.perPage)
     }
 
+
+    const { addButton, hideButton } = useHeader();
+
+    const createAssisitantButtonStyle = 'btn btn-sm btn-accent btn-outline';
+    const createAssisitantButtonPressed = 'btn btn-sm btn-accent';
+
+    const button =  {
+        label: 'Crea Assistente',
+        className: newAssistant ? createAssisitantButtonPressed : createAssisitantButtonStyle,
+        onClick: () => {
+            // Logica per creare un assistente
+            console.log('Crea Assistente');
+            dispatch(setSelectedAssistant(null))
+            setNewAssistant(true);
+        }
+    };
+
+    useEffect(() => {
+        setKey(new Date().getTime());
+        addButton(button);
+        return () => {
+            hideButton(button.label);
+        };
+    }, [selectedAssistant, newAssistant]);
+
     //se non c'è errore e se data.error non è presente, se non sta caricando e data e presente ricarica la pagina dopo 2 secondi
     useEffect(() => {
-        console.log('useEffect assistantsPage', data, error, isLoading);
         if(data && !error && !data.error && !isLoading) {
-            setTimeout(() => window.location.reload(), 2000);
+            createSuccessNotice('Assistente eliminato con successo');
+            mutateAssistants();
+            mutateTranscriptions();
+        } else if(error && !isLoading) {
+            createErrorNotice('Errore durante l\'eliminazione dell\'assistente');
         }
     }, [data, error, isLoading]);
 
+    useEffect(() => {
+        dispatch(setTitle('Assistenti'));
+    }, []);
 
-    const handleAssistantClick = (assistant) => {
+
+    const handleAssistantClick = useCallback((assistant) => {
         dispatch(setSelectedAssistant(assistant));
-        executeScroll();
-    }
+        setNewAssistant(false);
+        //executeScroll();
+    }, [dispatch, selectedAssistant]);
     
     const handleConfirmDelete = async (assistantId, closeModal) => {
-        //onDeletingTranscription(file_id);
         deleteAssistant(assistantId);
         closeModal();
     };
 
     const handleCancelDelete = (closeModal) => {
-        //setFileNameToDelete(null);
+        console.log('cancel delete');
         closeModal();
     };
 
+    if(isLoading) return (<CircularProgress />);
+
     return (
-        <>
-            <Panel>
-                <PanelBody>
-                <div>
-                    <h2>Lista degli Assistenti</h2>
-                    <DataViews
-                        data={ paginatedAssistants }
-                        fields={ fields }
-                        view={ view }
-                        onChangeView={ setView }
-                        actions={ actions }
-                        paginationInfo={ paginationInfo }
-                    />
-                </div>
-                </PanelBody>
-            </Panel>
-            <br />
-            {selectedAssistant && (
-                <div ref={scrolDivRef}>
-                    <Panel>
-                        <ManageAssistant assistant={selectedAssistant} />
-                        {/* <ManageQuoteAssistant assistant={selectedAssistant} /> */}
-                    </Panel>
-                    <br />
-                </div>
-            )}
-            <Panel>
-                <ManageAssistant />
-                {/* <ManageQuoteAssistant /> */}
-                <PanelBody
-                    title={ __( 'Playground', 'unadorned-announcement-bar' ) }
-                    initialOpen={ false }
-                >
-                    <PanelRow>
-                        <h2>Assistenti</h2>
-                        <button id="create-new-assistant" className="button button-primary" >Apri playground</button>
-                    </PanelRow>
-                </PanelBody>
-            </Panel>
+        <>  
+            {/* <button className="fixed right-10 top-5 z-[999] btn btn-accent btn-outline" onClick={() => dispatch(setSelectedAssistant(null))}>
+                Nuovo Assistente
+            </button> */}
+            <div className='relative flex flex-row h-full'>
+                <Panel className='flex-initial w-72 h-full overflow-y-hidden'>
+                    <PanelBody>
+                        <h2>Lista degli Assistenti</h2>
+                        {/* <div ref={componentRef}> */}
+                        <DataViews
+                            data={ paginatedAssistants }
+                            fields={ fields }
+                            view={ view }
+                            onChangeView={ setView }
+                            actions={ actions }
+                            paginationInfo={ paginationInfo }
+                            onSelectionChange={(items) => handleAssistantClick(items[0])}
+                        />
+                        {/* </div> */}
+                    </PanelBody>
+                </Panel>
+                {(newAssistant || selectedAssistant) && 
+                    <ManageAssistant key={selectedAssistant?.id} assistant={selectedAssistant} mutateData={ mutateData }/>
+                }
+            </div>
         </>
     );
 };
 
-domReady( () => {
-    const element = document.getElementById('react-assistants-page');
-    if(!element) return;
-    const root = createRoot(element)
-    root.render(
-        <StrictMode>
-            <Provider store={store}>
-                <AssistantsPage />
-            </Provider>
-        </StrictMode>
-    );
-
-    const notices = document.getElementById('react-assistants-notices');
-    if(notices) {
-        const root = createRoot(notices);
-        root.render(
-                <Notices />
-        );
-    }
-} );
+export default AssistantsPage;

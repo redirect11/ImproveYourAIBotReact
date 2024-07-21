@@ -1,5 +1,5 @@
 import React from 'react';
-import Loader from './components/Loader';
+import Loader from './Loader';
 
 import { createCustomMessage } from "react-chatbot-kit";
 

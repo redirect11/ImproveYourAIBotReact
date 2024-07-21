@@ -1,8 +1,13 @@
-import { uploadFile } from './fetcher';
+import { uploadAuthFile, uploadFile } from './fetcher';
 import useSWR from 'swr'
+import useAuth from './useAuth';
+import { config } from '../Constants';
 
 
 const useUploadFile = ({ file, shouldUpload }) => {
+
+  const { token, baseUrl } = useAuth();
+
   const handleUpload = async (url, token) => {
     const formData = new FormData();
       if(url && token){
@@ -14,12 +19,12 @@ const useUploadFile = ({ file, shouldUpload }) => {
         }
       
       }
-      return uploadFile(url, token, formData);
+      return uploadAuthFile(url, token, formData);
   }
 
-  const { data, error, isLoading } = useSWR(shouldUpload ? [
-                                            `/wp-json/video-ai-chatbot/v1/upload-file/`,
-                                            window.adminData.nonce
+  const { data, error, isLoading } = useSWR(shouldUpload && token && baseUrl ? [
+                                            `${baseUrl}/wp-json/video-ai-chatbot/v1/upload-file/`,
+                                            token
                                             ] : null, 
                                             ([url, token]) => handleUpload(url, token),
                                             { revalidateOnFocus: false, revalidateOnReconnect: false });

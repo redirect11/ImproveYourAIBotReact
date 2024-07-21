@@ -8,6 +8,7 @@ import ManageTranscription from './ManageTranscriptions/ManageTranscription';
 import { ConfirmDeleteTranscription } from '../ConfirmDelete';
 import { ReactComponent as OkSvg } from '../../svg/ok.svg';
 import { ReactComponent as ToBeUploadedSvg } from '../../svg/toBeUploaded.svg';
+import { useHeader } from '../HeaderContext';
 
 
 const paginateArray = (array, page, perPage) => {
@@ -20,7 +21,7 @@ const TranscriptionsDataView = ( { transcriptions, onSavingTranscription, onDele
 
     const [ view, setView ] = useState( {
         type: 'table',
-        perPage: 5,
+        perPage: 10,
         page: 1,
         sort: {},
         search: '',
@@ -59,6 +60,8 @@ const TranscriptionsDataView = ( { transcriptions, onSavingTranscription, onDele
         onSavingTranscription(transcription);
     };
 
+    
+
     const actions=[
         {
           RenderModal: (item) => { 
@@ -94,12 +97,12 @@ const TranscriptionsDataView = ( { transcriptions, onSavingTranscription, onDele
             render: ( { item } ) => {
                 if(item.transcription !== null) {
                     return (
-                        <div>{ item.transcription.videoTitle }</div>
+                        <>{ item.transcription.videoTitle }</>
                     );
                 }
                 else {
                     return (
-                        <div>Non disponibile</div>
+                        <>Non disponibile</>
                     );
                 }
             }
@@ -121,23 +124,23 @@ const TranscriptionsDataView = ( { transcriptions, onSavingTranscription, onDele
                 }
             }
         },
-        {
-            id: 'assistant',
-            header: 'Assistente',
-            render: ( { item } ) => {
-                if(item.assistant_id !== null && item.assistant_name !== null) {
-                    return (
-                        <div>{ item.assistant_name }</div>
-                    );
-                }
-                else {
-                    return (
-                        <div>Non assegnato</div>
-                    );
-                }
+        // {
+        //     id: 'assistant',
+        //     header: 'Assistente',
+        //     render: ( { item } ) => {
+        //         if(item.assistant_id !== null && item.assistant_name !== null) {
+        //             return (
+        //                 <div>{ item.assistant_name }</div>
+        //             );
+        //         }
+        //         else {
+        //             return (
+        //                 <div>Non assegnato</div>
+        //             );
+        //         }
                
-            }
-        },
+        //     }
+        // },
         {
             id: 'uploaded',
             header: 'Caricato',
@@ -175,31 +178,28 @@ const TranscriptionsDataView = ( { transcriptions, onSavingTranscription, onDele
     }, [selectedTranscription]);
 
     return (
-        <>  
-            <h2>Lista delle tracrizioni</h2>
-            <DataViews
-                data={ paginatedTranscriptions }
-                fields={ fields }
-                view={ view }
-                onChangeView={ onViewChanged }
-                paginationInfo={ paginationInfo }
-                getItemId={ geItemId }
-                actions = {actions}
-            />
-            <br />
+        <>
+            <Panel header="Importa Trascrizioni" className='flex-none m-1 h-5/12 w-full'>  
+                <PanelBody initialOpen={true}>
+                    <DataViews
+                        data={ paginatedTranscriptions }
+                        fields={ fields }
+                        view={ view }
+                        onChangeView={ onViewChanged }
+                        paginationInfo={ paginationInfo }
+                        getItemId={ geItemId }
+                        actions = {actions}
+                    />
+                </PanelBody>
+            </Panel>
             {selectedTranscription && (
-                <>
-                    <Panel>
-                        <PanelBody>
-                            <ManageTranscription 
-                                selectedTranscription={selectedTranscription} 
-                                onTranscriptionSave={handleSaveTranscription}
-                                uploadEnabled={ shouldEnableUpload }
-                            />
-                        </PanelBody>
-                    </Panel>
-                    <br />
-                </>
+                <div className='relative flex flex-grow flex-1 flex-row h-7/12 w-full ml-1 max-h-full'>
+                    <ManageTranscription 
+                        selectedTranscription={selectedTranscription} 
+                        onTranscriptionSave={handleSaveTranscription}
+                        uploadEnabled={ shouldEnableUpload }
+                    />
+                </div>
             )}
         </>
     );

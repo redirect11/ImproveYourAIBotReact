@@ -11,7 +11,7 @@ const DeleteUnusedVectorStoresButton = () => {
 
   return (
     <>
-        <Button onClick={handleClick}>
+        <Button className="button button-primary" onClick={handleClick}>
         Elimina Vector Stores Inutilizzati
         </Button>
         {isLoading && <p>Sto eliminando i Vector Stores inutilizzati...</p>}

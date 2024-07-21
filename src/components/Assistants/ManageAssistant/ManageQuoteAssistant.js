@@ -87,10 +87,6 @@ const ManageQuoteAssistant = ({assistant}) => {
             fileIds = [...selectedFileIds, fileId];
             setSelectedFileIds(fileIds);
         } 
-        // else {
-        //     createErrorNotice( __('Errore nel caricamento del file', 'video-ai-chatbot'));
-        //     return;
-        // }
 
         let request = {
             name: name,

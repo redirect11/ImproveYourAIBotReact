@@ -1,12 +1,11 @@
 // src/config.js
 import React from 'react';
-import Overview from './components/widgets/Overview/Overview';
+import Overview from './widgets/Overview/Overview';
 import { createChatBotMessage, createCustomMessage } from "react-chatbot-kit";
 
-import ChatbotMessageWithLinks from './components/widgets/VideoLink';
-import LoaderMessage from './components/widgets/LoaderMessage';
-import WithAvatar from './components/widgets/WithAvatar';
-import ChatbotHeader from './components/widgets/ChatbotHeader';
+import ChatbotMessageWithLinks from './widgets/VideoLink';
+import LoaderMessage from './widgets/LoaderMessage';
+import WithAvatar from './widgets/WithAvatar';
 
 const config = {
   initialMessages: [createChatBotMessage(`Hello World`)],

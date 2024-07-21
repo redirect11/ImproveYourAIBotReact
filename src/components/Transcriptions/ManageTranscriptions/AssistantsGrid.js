@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckboxControl } from '@wordpress/components';
 import './AssistantsGrid.css';
+import { useSelector } from 'react-redux';
+import useAssistants from '../../../hooks/useAssistants';
 
 const AssistantsGrid = ({transcription, onTranscriptionUpdated}) => {
+    const { data } = useAssistants();
 
     const assistants = useMemo(() => {
-        console.log('window.adminData', window.adminData);
-        let assistants = window.adminData.assistants ? window.adminData.assistants.data.data : [];
-        return assistants.filter((assistant) => assistant.metadata.type === 'trascrizioni');
+        return data.filter((assistant) => assistant.metadata.type === 'trascrizioni');
     }, [transcription]);
 
     const [isChecked, setIsChecked] = useState([]);
@@ -58,7 +59,7 @@ const AssistantsGrid = ({transcription, onTranscriptionUpdated}) => {
             {assistants && assistants.map((assistant, i) => (
                 <CheckboxControl 
                     key={assistant.id}
-                    className='assistant' 
+                    className='assistants-list-item py-1 text-ellipsis' 
                     label={assistant.name} 
                     checked={ isChecked[i] }
                     onChange={check(assistant.id, i)} 

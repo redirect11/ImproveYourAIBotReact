@@ -15,7 +15,8 @@ const TranscriptionBaseData = ({ fileName,
         console.log('fileText', fileText);
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+            let currentScrollHeight = textareaRef.current.scrollHeight >= 200 ? 200 : textareaRef.current.scrollHeight;
+            textareaRef.current.style.height = currentScrollHeight + 'px';
         }
     }, [fileText]);
 
@@ -26,25 +27,22 @@ const TranscriptionBaseData = ({ fileName,
                 label="Video Title"
                 value={videoTitle}
                 onChange={onVideoTitleChanged}/>
-            <br />
             <TextControl
                 label="Video Link"
                 value={videoLink}
                 onChange={onVideoLinkChanged}/>
-            <br />
             <Disabled> 
                 <TextControl
                     label="File Name"
                     value={fileName} 
                     style={ { opacity: 0.5 } }/>
-                <br />
-                <TextareaControl
-                    label="Transcription"
-                    ref={textareaRef}
-                    value={fileText}
-                    onChange={(value) => onTextChanged(value)}
-                    style={ { opacity: 0.5 } } />
             </Disabled>
+            <TextareaControl
+                label="Transcription"
+                ref={textareaRef}
+                value={fileText}
+                onChange={(value) => onTextChanged(value)}
+                readOnly={true} />
         </>
     );
 };

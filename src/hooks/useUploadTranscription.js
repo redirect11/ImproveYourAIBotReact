@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { uploadFile } from './fetcher';
+import { uploadAuthFile } from './fetcher';
 import useSWR from 'swr'
+import useAuth from './useAuth';
+import { config } from '../Constants';
 
 const useUploadTranscription = () => {
 
   const [transcriptionToUpload, setTranscriptionToUpload] = useState(null);
+
+  const {token, baseUrl} = useAuth();
 
   const handleUpload = async (url, token, transcription) => {
     const formData = new FormData();
@@ -18,7 +22,7 @@ const useUploadTranscription = () => {
             formData.append('file_id', transcription.file_id);
         }
       }
-      return uploadFile(url, token, formData);
+      return uploadAuthFile(url, token, formData);
   }
 
   const startUpload = (transcription) => {
@@ -28,27 +32,20 @@ const useUploadTranscription = () => {
 
  
   const { data, error, isLoading, mutate } = useSWR(
-    transcriptionToUpload ? [ 
-        `/wp-json/video-ai-chatbot/v1/upload-transcription/`,
-         window.adminData.nonce, 
+    transcriptionToUpload && token && baseUrl ? [ 
+        `${baseUrl}/wp-json/video-ai-chatbot/v1/upload-transcription/`,
+         token, 
         transcriptionToUpload ? transcriptionToUpload : null
     ] : null, 
     ([url, token, transcription]) => handleUpload(url, token, transcription),
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, shouldRetryOnError: false}
   );
 
   useEffect(() => {
-    console.log('useUploadTranscription useEffect data error isLoading', data, error, isLoading);
     if(data || error) {
-      console.log('RESET TO NULL');
       setTranscriptionToUpload(null);
     }
-      console.log('useUploadTranscription useEffect data error isLoading EXIT', data, error, isLoading);
   } , [data, error, isLoading]);
-
-  console.log('data', data);
-  console.log('error', error);
-  console.log('isLoading', isLoading);
                
   return { data, error, isLoading, startUpload, mutate};
 }

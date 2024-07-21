@@ -11,10 +11,12 @@ export const assistantsSlice = createSlice({
   initialState,
   reducers: {
     setAssistants: (state, action) => {
+      console.log('setAssistants', action.payload);
       state.assistants = action.payload;
     },
 
     setSelectedAssistant: (state, action) => {
+      console.log('setSelectedAssistant', action.payload);
       state.selectedAssistant = action.payload;
     },
   },

@@ -10,6 +10,7 @@ const AsyncSelectControl = ({ url, value, description, onChange, filter }) => {
   const [options, setOptions] = useState([]);
 
   useEffect(() => {
+    console.log(data);
     if (data) {
       const opts = data.map(option => ({ label: option.replace(/\.[^/.]+$/, ""), value: option.replace(/\.[^/.]+$/, "") }));
       setOptions(opts);

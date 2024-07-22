@@ -64,6 +64,9 @@ export const uploadFile = (url, token, formData) => fetch(url, {
         } else  {
           throw new Error(data.message);
         }
+      } else if (data?.code === "rest_forbidden") {
+        console.log('data.data.message', data.data.message);
+        throw new Error(data.data.message);
       }
       return data;
   });

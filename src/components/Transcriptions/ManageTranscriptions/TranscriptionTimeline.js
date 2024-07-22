@@ -71,7 +71,7 @@ const TranscriptionTimeline = ({ transcriptionData, onTextChanged }) => {
                         //     </div>
                         //   )}
                     >
-                        <textarea
+                        <TextareaControl
                             className="textarea-xs leading-snug"
                             value={transcription.text}
                             onChange={(value) => onTextChange(index, value)}/>

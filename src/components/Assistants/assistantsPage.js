@@ -190,7 +190,7 @@ const AssistantsPage = ()  => {
                 Nuovo Assistente
             </button> */}
             <div className='relative flex flex-row h-full'>
-                <Panel className='flex-initial w-72 h-full overflow-y-hidden'>
+                <Panel className='flex-initial w-72 h-full overflow-y-hidden mr-1'>
                     <PanelBody>
                         <h2>Lista degli Assistenti</h2>
                         {/* <div ref={componentRef}> */}

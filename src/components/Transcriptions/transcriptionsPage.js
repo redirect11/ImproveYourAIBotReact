@@ -17,7 +17,7 @@ import useAssistants from '../../hooks/useAssistants';
 
 const TranscriptionsPage = () => {
 
-    const { token } = useAuth();
+    const { token, baseUrl } = useAuth();
 
     const { createErrorNotice, createSuccessNotice } = useDispatchWordpress( noticesStore );
 
@@ -42,7 +42,7 @@ const TranscriptionsPage = () => {
     const handleTranscriptionDelete = async (file_id) => { //todo move this to a hook
         if(token) {
             console.log('handleTranscriptionDelete:', file_id);
-            const response = await fetch(`${config.url.API_URL}/wp-json/myplugin/v1/delete-transcription/${file_id}`, {
+            const response = await fetch(`${baseUrl}/wp-json/myplugin/v1/delete-transcription/${file_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': 'Bearer ' + token,	
@@ -68,7 +68,12 @@ const TranscriptionsPage = () => {
     return (
         <>
             { isLoading && <Oval color="#00BFFF" height={100} width={100} /> }
-            { !isLoading && allTranscriptions.length === 0 && <p>Nessuna trascrizione disponibile</p>}
+            { !isLoading && allTranscriptions.length === 0 && 
+            <div className="flex items-center justify-center h-screen">
+                <p className="text-white text-lg font-semibold bg-gray-900 p-4 rounded-lg shadow-lg">
+                Nessuna trascrizione disponibile
+                </p>
+            </div>}
             { !isLoading && allTranscriptions.length > 0 && (
                 <>
                     <TranscriptionsList 

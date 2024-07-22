@@ -8,6 +8,8 @@ export const useHeader = () => useContext(HeaderContext);
 export const HeaderProvider = ({ children }) => {
     const [headerButtons, setHeaderButtons] = useState([]);
     const [transcriptionsUploadStatus, setTranscriptionsUploadStatus] = useState("");
+    const [files, setFiles] = useState([]);
+
 
     const addButton = (button) => {
         setHeaderButtons((prevButtons) => {

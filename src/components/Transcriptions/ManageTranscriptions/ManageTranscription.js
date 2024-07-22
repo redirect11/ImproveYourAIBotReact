@@ -54,7 +54,6 @@ const ManageTranscription = ( { selectedTranscription, uploadEnabled, onTranscri
     const { addButton, hideButton } = useHeader();
     
     const saveButtonClickRef = useRef(null);
-    const deleteButtonClickRef = useRef(null);
 
     useEffect(() => {
         if(selectedTranscription && uploadEnabled) {

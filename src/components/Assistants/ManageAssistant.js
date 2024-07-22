@@ -174,7 +174,7 @@ const ManageAssistant = ({assistant, mutateData}) => {
     let header = assistant ? "Modifica Assistente" : "Nuovo Assistente";
     return (
         <>
-        <Panel header={header} className='assistant flex-1 w-full mx-2 h-full overflow-y-auto'>
+        <Panel header={header} className='assistant flex-1 w-full mr-1 h-full overflow-y-auto'>
             <PanelBody className='relative flex flex-col h-full'>
                 { !assistant && (
                     <>
@@ -200,7 +200,7 @@ const ManageAssistant = ({assistant, mutateData}) => {
                     />
             </PanelBody>
         </Panel>
-        <Panel className='flex-1 w-full mx-2 h-full overflow-y-auto'>
+        <Panel className='flex-1 w-full mr-1 h-full overflow-y-auto'>
             <PanelBody> 
                 <div >
                     {assistantType === 'preventivi' && (

@@ -13,45 +13,9 @@ import { useDispatch as useDispatchWordpress } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
 import RemoteOperationButton from '../RemoteOperationButton';
 import { setTranscriptions } from '../../redux/slices/TranscriptionsSlice';
+import SettingsList from './SettingsList';
 
-const SettingsList = ({ options, handleChange }) => {
-    console.log('SettingsList options', options);
-    return (
-        <div>
-          {Array.from(settings.keys()).map(settingKey => {
-            const setting = settings.get(settingKey);
-            const option = options.find(option => option.id === settingKey) || { id: settingKey, value: '' };
-            const Component = setting.type; // Ottiene il componente da renderizzare basato sul tipo definito nella mappa
-            const props = {
-                description: setting.description, 
-                value: option.value, 
-                onChange: (value) => handleChange(option.id, value)
-            };
-            if (setting.url) {
-                props.url = setting.url;
-            }
-            if(Component === CheckboxControl) {
-                props.checked = option.value === '1' || option.value === true;
-            }
-            if(Component === RemoteOperationButton) {
-                return (
-                    <div key={option.id}>
-                      <label>{setting.name}</label>
-                      <br />
-                      <Component {...props} buttonText={setting.name} callback={setting.callback} />
-                    </div>
-                  );
-            }
-            return (
-              <div key={option.id}>
-                <label>{setting.name}</label>
-                <Component {...props} />
-              </div>
-            );
-          })}
-        </div>
-      );
-};
+
 
 const SettingsPage = () => {
     const dispatch = useDispatch();
@@ -75,7 +39,7 @@ const SettingsPage = () => {
 
     useEffect(() => {
         if (options) {
-            const optsArray = Array.from(settings.keys()).map(settingKey => {
+            const optsArray = Object.keys(settings).filter(settingKey => options.hasOwnProperty(settingKey)).map(settingKey => {
                 const option = options[settingKey] || '';
                 return { id: settingKey, value: option };
             });
@@ -170,13 +134,15 @@ const SettingsPage = () => {
         <>
             <SettingsPanel title={'Cancella vector stores inutilizzati'} open={true}>
                 {isLoading ? (
-                    <CircularProgress size="5rem" color="inherit"/>
+                    <CircularProgress size="5rem" color="inherit" className='justify-center items-center'/>
                 ) : isError ? ( 
                     <p>Errore durante il caricamento delle impostazioni</p>
                 ) : (
                     <>
                         <SettingsList options={formValues} handleChange={handleChange} />
-                            <div>
+                        <div>
+                            <br />
+                            <label>Sincronizza le trascrizioni con OpenAI</label>
                             <br />
                             <Button variant="secondary" onClick={ () => {
                                 //setIsLoading(true);
@@ -191,7 +157,7 @@ const SettingsPage = () => {
                 <Button variant='primary' onClick={handleSubmit}>Salva Impostazioni</Button>
                 {isSaving && <CircularProgress size="5rem" color="inherit"/>}
                 {saveError && <p>{saveError}</p>}
-                <DeleteUnusedVectorStoresButton />
+                {/* <DeleteUnusedVectorStoresButton /> */}
             </SettingsPanel>
         </>
     );

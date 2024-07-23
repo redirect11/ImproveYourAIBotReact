@@ -39,10 +39,13 @@ const SettingsPage = () => {
 
     useEffect(() => {
         if (options) {
-            const optsArray = Object.keys(settings).filter(settingKey => options.hasOwnProperty(settingKey)).map(settingKey => {
+            const optsArray = Object.keys(options).map(settingKey => {
                 const option = options[settingKey] || '';
-                return { id: settingKey, value: option };
-            });
+                if (settings.has(settingKey)) {
+                    return { id: settingKey, value: option };
+                }
+                return null;
+            }).filter(option => option !== null);
             console.log('optsArray', optsArray);
             setFormValues(optsArray);
         }

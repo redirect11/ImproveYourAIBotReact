@@ -22,8 +22,6 @@ const Notices = () => {
         return acc;
     }, []);
 
-    console.log('Notices', uniqueNotices);
-
     if ( uniqueNotices.length === 0 ) {
         return null;
     }

@@ -23,11 +23,6 @@ import ImportTranscriptionsPage from './components/Transcriptions/importTranscri
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const { token: authToken, loading, error, needsLogin, baseUrl } = useAuth();
-  console.log('ProtectedRoute authToken', authToken);
-  console.log('ProtectedRoute loading', loading);
-  console.log('ProtectedRoute error', error);
-  console.log('ProtectedRoute needsLogin', needsLogin);
-  console.log('ProtectedRoute baseUrl', baseUrl);
   if(loading || !baseUrl ) {
     return <CircularProgress size="5rem" color="inherit"/>;
   } 

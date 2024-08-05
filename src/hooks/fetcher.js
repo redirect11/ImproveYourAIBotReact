@@ -57,7 +57,6 @@ export const uploadFile = (url, token, formData) => fetch(url, {
     }
   }).then(res => res.json())
     .then(data => {
-      console.log('data', data);
       if(data?.success === false && data?.message) {
         if(data.message === "OpenAI client not initialized") {
           return data;
@@ -65,14 +64,12 @@ export const uploadFile = (url, token, formData) => fetch(url, {
           throw new Error(data.message);
         }
       } else if (data?.code === "rest_forbidden") {
-        console.log('data.data.message', data.data.message);
         throw new Error(data.data.message);
       }
       return data;
   });
 
   export const getAuthDataFromQt = async () => {
-    console.log('getAuthDataFromQt');
     try {
       
       // const username_1 = await new Promise((resolve, reject) => {
@@ -99,7 +96,6 @@ export const uploadFile = (url, token, formData) => fetch(url, {
         }
         else {
           window.webViewManager.getAuthToken(function (token) {
-            console.log('TOKEEEEEN', token);
             if (!token) {
               reject(new Error('No token found'));
             } else {

@@ -11,32 +11,29 @@ const SettingsList = ({ options, handleChange }) => {
           {options.map(option => {
             const setting = settings.get(option.id);
             const Component = setting.type; // Ottiene il componente da renderizzare basato sul tipo definito nella mappa
-            const props = {
-                description: setting.description, 
-                value: option.value, 
-                onChange: (value) => handleChange(option.id, value)
-            };
-            if (setting.url) {
-                props.url = setting.url;
+            if (Component) {            
+              const props = {
+                  description: setting.description, 
+                  value: option.value, 
+                  className: setting.className? setting.className : '',
+                  onChange: (value) => {
+                      console.log('SettingsList value', value); 
+                      handleChange(option.id, value) 
+                  }
+              }; 
+              if (setting.url) {
+                  props.url = setting.url;
+              }
+              if(Component === CheckboxControl) {
+                  props.checked = option.value === '1' || option.value === true;
+              }
+              return (
+                <div key={option.id}>
+                  <label>{setting.name}</label>
+                  <Component {...props} />
+                </div>
+              );
             }
-            if(Component === CheckboxControl) {
-                props.checked = option.value === '1' || option.value === true;
-            }
-            if(Component === RemoteOperationButton) {
-                return (
-                    <div key={option.id}>
-                      <label>{setting.name}</label>
-                      <br />
-                      <Component {...props} buttonText={setting.name} callback={setting.callback} />
-                    </div>
-                  );
-            }
-            return (
-              <div key={option.id}>
-                <label>{setting.name}</label>
-                <Component {...props} />
-              </div>
-            );
           })}
         </div>
       );

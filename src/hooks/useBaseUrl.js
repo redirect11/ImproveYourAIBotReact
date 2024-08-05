@@ -5,12 +5,10 @@ import useSWR from 'swr';
 const fetchBaseUrl = () => {
   return new Promise((resolve, reject) => {
 	if (!window.webViewManager) {
-        console.log('rejecting baseUrl');
         reject();
       }
       else {
         window.webViewManager.getBaseUrl(function (baseUrl) {
-          console.log('BASEURL', baseUrl);
           if (!baseUrl) {
             reject(new Error('No baseUrl found'));
           } else {

@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Button, CheckboxControl, TextControl, TextareaControl } from '@wordpress/components';
+import { Button } from '@wordpress/components';
 import { useDispatch } from 'react-redux';
 import { setTitle } from '../../redux/slices/HeaderTitleSlice';
 import useGetAllOptions from '../../hooks/useGetAllOptions';
 import settings from './settings';
-import DeleteUnusedVectorStoresButton from './DeleteUnusedVectorStoresButton';
+import SettingsList from './SettingsList';
 import SettingsPanel from './SettingsPanel';
-import { config } from '../../Constants';
 import useAuth from '../../hooks/useAuth';
 import { CircularProgress } from '@material-ui/core';
 import { useDispatch as useDispatchWordpress } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
-import RemoteOperationButton from '../RemoteOperationButton';
+import WhatsappAssistantsSettings from './WhatsappAssistantsSettings';
 import { setTranscriptions } from '../../redux/slices/TranscriptionsSlice';
-import SettingsList from './SettingsList';
-
+import RemoteOperationButton from '../RemoteOperationButton';
 
 
 const SettingsPage = () => {
@@ -26,10 +24,10 @@ const SettingsPage = () => {
     const [formValues, setFormValues] = useState([]);
     const [isSaving, setIsSaving] = useState(false);   
     const [saveError, setSaveError] = useState('');
+    const [associations, setAssociations] = useState(null);
 
-    console.log('isError', isError);
-    console.log('isLoading', isLoading);
     console.log('options', options);
+    console.log('formValues', formValues);
 
     const { createSuccessNotice, createErrorNotice } = useDispatchWordpress( noticesStore );
 
@@ -46,8 +44,11 @@ const SettingsPage = () => {
                 }
                 return null;
             }).filter(option => option !== null);
-            console.log('optsArray', optsArray);
             setFormValues(optsArray);
+            if(options['video_ai_whatsapp_assistants']) {
+                console.log('video_ai_whatsapp_assistants', options['video_ai_whatsapp_assistants']);
+                setAssociations(options['video_ai_whatsapp_assistants']);
+            }
         }
     }, [options]);
 
@@ -57,6 +58,10 @@ const SettingsPage = () => {
 
         if(id === 'video_ai_enable_chatbot_field') {
             value = value ? '1' : '0';
+        }
+
+        if(id === 'video_ai_whatsapp_assistants') {
+            setAssociations(value);
         }
 
         setFormValues(prevState => prevState.map(option => option.id === id ? { ...option, value } : option));
@@ -70,9 +75,14 @@ const SettingsPage = () => {
             setIsSaving(true);
             const formData = new FormData();
             formValues.forEach(({ id, value }) => {
+                if(id === 'video_ai_whatsapp_assistants') {
+                    value = JSON.stringify(value);
+                }
+                console.log('append', id, value);   
                 formData.append(id, value);
             });
             try {
+                console.log('formData', formData);
                 const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/set-all-options`, {
                     method: 'POST',
                     headers: {
@@ -133,36 +143,72 @@ const SettingsPage = () => {
         }
     };
 
+    const cancelAllRuns = async (onError, onSuccess, token, baseUrl) => {
+        try {
+            const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/cancel-all-runs/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data.message);
+                onSuccess(data);
+            } else {
+                const errorData = await response.json();
+                console.error('Error:', errorData.message);
+                onError(errorData);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
     return (
-        <>
-            <SettingsPanel title={'Cancella vector stores inutilizzati'} open={true}>
+        <div className="flex flex-col w-full min-w-max h-[95%]">
+            <div className="w-full">
                 {isLoading ? (
                     <CircularProgress size="5rem" color="inherit" className='justify-center items-center'/>
                 ) : isError ? ( 
                     <p>Errore durante il caricamento delle impostazioni</p>
                 ) : (
                     <>
-                        <SettingsList options={formValues} handleChange={handleChange} />
-                        <div>
-                            <br />
-                            <label>Sincronizza le trascrizioni con OpenAI</label>
-                            <br />
-                            <Button variant="secondary" onClick={ () => {
-                                //setIsLoading(true);
-                                syncTranscriptions();
-                            }}>
-                                Sincronizza Trascrizioni
-                            </Button>
-                        </div>
+                        <SettingsPanel title={'Chatbot Settings'} open={true} className="h-full">
+                            <SettingsList options={formValues} handleChange={handleChange} />
+                                <br />
+                                <label>Sincronizza le trascrizioni con OpenAI</label>
+                                <br />
+                                <Button variant="secondary" onClick={ () => {
+                                    //setIsLoading(true);
+                                    syncTranscriptions();
+                                }}>
+                                    Sincronizza Trascrizioni
+                                </Button>
+                                <RemoteOperationButton buttonText="Cancel all runs" callback={cancelAllRuns}/>
+                        </SettingsPanel>
                     </>
                 )}
-                <br />
-                <Button variant='primary' onClick={handleSubmit}>Salva Impostazioni</Button>
-                {isSaving && <CircularProgress size="5rem" color="inherit"/>}
-                {saveError && <p>{saveError}</p>}
-                {/* <DeleteUnusedVectorStoresButton /> */}
-            </SettingsPanel>
-        </>
+            </div>
+            {associations && 
+                <div className="w-full flex-1 max-w-full">
+                    <SettingsPanel title={'Whatsapp Settings'} open={true}>
+                        <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                            <WhatsappAssistantsSettings associations={associations} handleChange={handleChange} />
+                        </div>
+                    </SettingsPanel>
+                </div>
+            }
+            <div className="w-full flex-1 max-w-full">
+                <SettingsPanel>
+                    <Button variant='primary' onClick={handleSubmit}>Salva Impostazioni</Button>
+                    {isSaving && <CircularProgress size="5rem" color="inherit"/>}
+                    {saveError && <p>{saveError}</p>}
+                </SettingsPanel>
+            </div>
+
+        </div>
     );
 };
 

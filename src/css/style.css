@@ -256,7 +256,10 @@ textarea,
 .assistant .components-textarea-control__input, 
 .assistant .components-text-control__input,
 .transcription .components-textarea-control__input, 
-.transcription .components-text-control__input {
+.transcription .components-text-control__input,
+.settings .components-textarea-control__input, 
+.settings .components-text-control__input,
+.settings .components-select-control__input {
 	box-sizing: border-box;
 	font-family: inherit;
 	font-size: inherit;
@@ -273,21 +276,25 @@ textarea,
 
 textarea, 
 .assistant .components-textarea-control__input,
-.transcription .components-textarea-control__input {
+.transcription .components-textarea-control__input
+.settings .components-textarea-control__input {
 	min-height: 5em;
 	line-height: 1.5; /* leading-6 */
 	transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; /* transition duration-150 ease-in-out */
 }
 
 .assistant .components-textarea-control__input,
-.transcription .components-textarea-control__input {
-	min-height: 250px;
-	height: 250px;
+.transcription .components-textarea-control__input,
+.settings .components-textarea-control__input,
+.settings .components-select-control__input {
+	min-height: 200px;
+	height: 200px;
 }
 
 textarea:focus, 
 .assistant .components-textarea-control__input:focus, 
-.transcription .components-textarea-control__input:focus {
+.transcription .components-textarea-control__input:focus,
+.settings .components-textarea-control__input:focus {
     background-color: white; /* focus:bg-white */
     border-color: #818cf8; /* focus:border-indigo-400 */
     box-shadow: 0 0 0 2px #e0e7ff; /* focus:ring-2 focus:ring-indigo-100 */

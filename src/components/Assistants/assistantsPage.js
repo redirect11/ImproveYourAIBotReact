@@ -117,7 +117,9 @@ const AssistantsPage = ()  => {
     let paginatedAssistants = [];
     //const filteredAssistants = useMemo(() => assistants.filter(assistant => assistant.metadata.type === 'preventivi'));
     if(assistants.length > 0) {
-        paginatedAssistants = paginateArray([...assistants], view.page, view.perPage);
+        //filtra gli assistenti in base al fatto che abbiamo i metadati oppure no
+        const assistantsWithMetadata = assistants.filter(assistant => assistant.metadata);
+        paginatedAssistants = paginateArray([...assistantsWithMetadata], view.page, view.perPage);
     }
 
     const paginationInfo = {

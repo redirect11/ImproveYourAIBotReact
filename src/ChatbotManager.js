@@ -7,6 +7,7 @@ import Login from './Login';
 import SettingsPage from './components/Settings/settingsPage';
 import AssistantsPage from './components/Assistants/assistantsPage';
 import TranscriptionsPage from './components/Transcriptions/transcriptionsPage';
+import Chat from './components/Chat/Chat';
 import domReady from '@wordpress/dom-ready';
 import { createRoot } from '@wordpress/element';
 import { StrictMode } from 'react';
@@ -59,6 +60,11 @@ const AuthApp = () => {
                 element={
                 <ProtectedRoute>
                   <AssistantsPage/>
+                </ProtectedRoute>} />
+        <Route path="/chat" 
+                element={
+                <ProtectedRoute>
+                  <Chat/>
                 </ProtectedRoute>} />
         {/* <Redirect from="/" to="/transcriber" /> */}
     </Routes>

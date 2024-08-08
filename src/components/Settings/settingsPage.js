@@ -13,7 +13,7 @@ import { store as noticesStore } from '@wordpress/notices';
 import WhatsappAssistantsSettings from './WhatsappAssistantsSettings';
 import { setTranscriptions } from '../../redux/slices/TranscriptionsSlice';
 import RemoteOperationButton from '../RemoteOperationButton';
-
+import AddHandoverNumbers from './AddHandoverNumbers';
 
 const SettingsPage = () => {
     const dispatch = useDispatch();
@@ -145,7 +145,30 @@ const SettingsPage = () => {
 
     const cancelAllRuns = async (onError, onSuccess, token, baseUrl) => {
         try {
-            const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/cancel-all-runs/`, {
+            const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/cancel-all-users-runs/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data.message);
+                onSuccess(data);
+            } else {
+                const errorData = await response.json();
+                console.error('Error:', errorData.message);
+                onError(errorData);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    const deleteAllThreads = async (onError, onSuccess, token, baseUrl) => {
+        try {
+            const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/delete-all-threads/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -177,16 +200,6 @@ const SettingsPage = () => {
                     <>
                         <SettingsPanel title={'Chatbot Settings'} open={true} className="h-full">
                             <SettingsList options={formValues} handleChange={handleChange} />
-                                <br />
-                                <label>Sincronizza le trascrizioni con OpenAI</label>
-                                <br />
-                                <Button variant="secondary" onClick={ () => {
-                                    //setIsLoading(true);
-                                    syncTranscriptions();
-                                }}>
-                                    Sincronizza Trascrizioni
-                                </Button>
-                                <RemoteOperationButton buttonText="Cancel all runs" callback={cancelAllRuns}/>
                         </SettingsPanel>
                     </>
                 )}
@@ -205,6 +218,28 @@ const SettingsPage = () => {
                     <Button variant='primary' onClick={handleSubmit}>Salva Impostazioni</Button>
                     {isSaving && <CircularProgress size="5rem" color="inherit"/>}
                     {saveError && <p>{saveError}</p>}
+                </SettingsPanel>
+            </div>
+            <div className="w-full flex-1 max-w-full">
+                <SettingsPanel title={'Handover Notification Numbers'} open={true}>
+                <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                            <AddHandoverNumbers/>
+                        </div>
+                </SettingsPanel>
+            </div>
+            <div className="w-full flex-1 max-w-full">
+                <SettingsPanel title={'Debugging'} open={false}>
+                    <br />
+                    <label>Sincronizza le trascrizioni con OpenAI</label>
+                    <br />
+                    <Button variant="secondary" onClick={ () => {
+                        //setIsLoading(true);
+                        syncTranscriptions();
+                    }}>
+                        Sincronizza Trascrizioni
+                    </Button>
+                    <RemoteOperationButton buttonText="Cancel all runs" callback={cancelAllRuns}/>
+                    <RemoteOperationButton buttonText="Delete all threads" callback={deleteAllThreads}/>
                 </SettingsPanel>
             </div>
 

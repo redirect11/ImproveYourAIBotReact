@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Sidebar } from "flowbite-react";
-import { HiArrowSmRight, HiPencil, HiUser, HiAnnotation } from "react-icons/hi";
+import { HiArrowSmRight, HiPencil, HiUser, HiChat, HiChip } from "react-icons/hi";
 
 const customTheme = {
 
@@ -94,11 +94,14 @@ const Navigation = () => {
         <Sidebar theme={customTheme} aria-label="ImporoveYourAiBot Navigation" className="mt-3 py-2 px-2 lg:mt-2 lg:px-3">
           <Sidebar.Items>
             <Sidebar.ItemGroup>
-              <Sidebar.Item href="#/chatbot-settings" icon={HiArrowSmRight}>
+              <Sidebar.Item href="#/chatbot-settings" icon={HiChip}>
                 Chatobt Settings
               </Sidebar.Item>
               <Sidebar.Item href="#/assistants-settings" icon={HiUser}>
                 Assistenti
+              </Sidebar.Item>
+              <Sidebar.Item href="#/chat" icon={HiChat}>
+                Chat
               </Sidebar.Item>
               <Sidebar.Collapse icon={HiPencil} label="Trascrizioni">
                 <Sidebar.Item href="#/transcriptions-settings">Modifica Trascrizioni</Sidebar.Item>

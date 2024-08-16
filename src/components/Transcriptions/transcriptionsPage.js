@@ -42,7 +42,7 @@ const TranscriptionsPage = () => {
     const handleTranscriptionDelete = async (file_id) => { //todo move this to a hook
         if(token) {
             console.log('handleTranscriptionDelete:', file_id);
-            const response = await fetch(`${baseUrl}/wp-json/myplugin/v1/delete-transcription/${file_id}`, {
+            const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/delete-transcription/${file_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': 'Bearer ' + token,	

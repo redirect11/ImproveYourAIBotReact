@@ -20,6 +20,7 @@ import Notices from './components/Notices';
 import './css/app.css';
 import { HeaderProvider } from './components/HeaderContext';
 import ImportTranscriptionsPage from './components/Transcriptions/importTranscriptionsPage';
+import { Provider as BusProvider } from 'react-bus';
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -74,35 +75,37 @@ const App = () => {
   return (
     <StrictMode>
       <Provider store={store}>
-        <Router>
-          <div className="dark:bg-boxdark-2 dark:text-bodydark">
-            {/* <!-- ===== Page Wrapper Start ===== --> */}
-            <div className="flex h-screen overflow-hidden">
-              {/* <!-- ===== Sidebar Start ===== --> */}
-              <Navigation />
-              {/* <!-- ===== Sidebar End ===== --> */}
+        <BusProvider>
+          <Router>
+            <div className="dark:bg-boxdark-2 dark:text-bodydark">
+              {/* <!-- ===== Page Wrapper Start ===== --> */}
+              <div className="flex h-screen overflow-hidden">
+                {/* <!-- ===== Sidebar Start ===== --> */}
+                <Navigation />
+                {/* <!-- ===== Sidebar End ===== --> */}
 
-              {/* <!-- ===== Content Area Start ===== --> */}
-              <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
-                {/* <!-- ===== Header Start ===== --> */}
-                <HeaderProvider>
-                  <Header/>
-                  {/* <!-- ===== Header End ===== --> */}
+                {/* <!-- ===== Content Area Start ===== --> */}
+                <div className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+                  {/* <!-- ===== Header Start ===== --> */}
+                  <HeaderProvider>
+                    <Header/>
+                    {/* <!-- ===== Header End ===== --> */}
 
-                  {/* <!-- ===== Main Content Start ===== --> */}
-                  <main className="flex-1 ml-0 mt-2 min-w-max h-screen">
-                    <AuthApp />
-                  </main>
-                </HeaderProvider>
-                {/* <!-- ===== Main Content End ===== --> */}
+                    {/* <!-- ===== Main Content Start ===== --> */}
+                    <main className="flex-1 ml-0 mt-2 min-w-max h-screen">
+                      <AuthApp />
+                    </main>
+                  </HeaderProvider>
+                  {/* <!-- ===== Main Content End ===== --> */}
+                </div>
+                {/* <!-- ===== Content Area End ===== --> */}
               </div>
-              {/* <!-- ===== Content Area End ===== --> */}
+              {/* <!-- ===== Page Wrapper End ===== --> */}
             </div>
-            {/* <!-- ===== Page Wrapper End ===== --> */}
-          </div>
-          <Notices />
-          {/* <Footer /> */}
-        </Router>
+            <Notices />
+            {/* <Footer /> */}
+          </Router>
+        </BusProvider>
       </Provider>
     </StrictMode>
   );

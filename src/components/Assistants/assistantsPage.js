@@ -17,6 +17,7 @@ import { CircularProgress } from '@material-ui/core';
 import useAssistants from '../../hooks/useAssistants';
 import useTranscriptions from '../../hooks/useTranscriptions';
 import { useHeader } from '../HeaderContext';
+import TestChatbot from './TestChatbot';
 
 
 const paginateArray = (array, page, perPage) => {
@@ -89,9 +90,10 @@ const AssistantsPage = ()  => {
     ] 
 
     const dispatch = useDispatch();
-    const { data: assistants, mutate: mutateAssistants } = useAssistants(); //todo change the json structure
+    const { data: assistants, mutate: mutateAssistants, isLoading: assistantLoading, isValidating } = useAssistants(); //todo change the json structure
     const { mutate: mutateTranscriptions } = useTranscriptions();
     const [newAssistant, setNewAssistant] = useState(false);
+    console.log('assistants', assistants);
 
     const mutateData = () => {
         mutateAssistants();
@@ -191,8 +193,8 @@ const AssistantsPage = ()  => {
             {/* <button className="fixed right-10 top-5 z-[999] btn btn-accent btn-outline" onClick={() => dispatch(setSelectedAssistant(null))}>
                 Nuovo Assistente
             </button> */}
-            <div className='relative flex flex-row h-full'>
-                <Panel className='flex-initial w-72 h-full overflow-y-hidden mr-1'>
+            <div className='relative flex flex-row h-min'>
+                <Panel className='flex-initial w-72 h-full overflow-y-hidden mr-1 text-black'>
                     <PanelBody>
                         <h2>Lista degli Assistenti</h2>
                         {/* <div ref={componentRef}> */}
@@ -204,6 +206,7 @@ const AssistantsPage = ()  => {
                             actions={ actions }
                             paginationInfo={ paginationInfo }
                             onSelectionChange={(items) => handleAssistantClick(items[0])}
+                            isLoading={ assistantLoading || isValidating }
                         />
                         {/* </div> */}
                     </PanelBody>
@@ -211,6 +214,7 @@ const AssistantsPage = ()  => {
                 {(newAssistant || selectedAssistant) && 
                     <ManageAssistant key={selectedAssistant?.id} assistant={selectedAssistant} mutateData={ mutateData }/>
                 }
+                <TestChatbot assistant={selectedAssistant} />
             </div>
         </>
     );

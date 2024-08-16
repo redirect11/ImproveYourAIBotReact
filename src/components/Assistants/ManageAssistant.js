@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useDispatch as useDispatchWordpress } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
-import { Button, TextControl, TextareaControl, 
+import { TextControl, TextareaControl, 
     Panel,
     PanelBody,
     SelectControl,
@@ -11,11 +11,13 @@ import { Button, TextControl, TextareaControl,
     
 import TranscriptionSelector from './ManageAssistant/TranscriptionSelector';
 import UploadAssistantFile from './ManageAssistant/UploadAssistantFile';
-import FetchableAssistantFileForm from './ManageAssistant/FetchableAssistantFileForm';
 import useAuth from '../../hooks/useAuth';
-import { useHeader } from '../HeaderContext';
+import { more } from '@wordpress/icons';
+import { useListener } from 'react-bus';
+import { useDispatch } from 'react-redux';
 import { setSelectedAssistant } from '../../redux/slices/AssistantsSlice';
-import useAssistants from '../../hooks/useAssistants';
+import { useHeader } from '../HeaderContext';
+import useGetGptModels from '../../hooks/useGetGptModels';
 
 const ManageAssistant = ({assistant, mutateData}) => {
 
@@ -23,22 +25,27 @@ const ManageAssistant = ({assistant, mutateData}) => {
     const [prompt, setPrompt] = useState(assistant ? assistant.instructions : '');
     const [assistantType, setAssistantType] = useState(assistant ? assistant.metadata.type : 'trascrizioni');
     const [isPrivate, setIsPrivate] = useState(assistant?.metadata?.isPrivate && assistant.metadata.isPrivate === "true" ? true : false);
-    const [uploadStarted, setUploadStarted] = useState(false);
     const [selectedFileIds, setSelectedFileIds] = useState([]);
     const [roles, setRoles] = useState(assistant?.metadata?.roles ? assistant.metadata.roles : '');
 
-    console.log('roles', roles);
-    const rolesArray = roles ? roles.split('|').filter(Boolean) : [];
-    
-    const { data: assistants } = useAssistants();
+    const { models, isLoading, isError } = useGetGptModels();
+    const [selectedModel, setSelectedModel] = useState(assistant?.model || null);
 
+    const rolesArray = roles ? roles.split('|').filter(Boolean) : [];
+
+    const { token, baseUrl }  = useAuth();
+
+    const dispatch = useDispatch();
+
+    const { updateAssistantCreationStatus } = useHeader();
+
+    console.log('selectedFileIds', selectedFileIds);
     console.log('name', name);
     console.log('prompt', prompt);
     console.log('assistantType', assistantType);
     console.log('isPrivate', isPrivate);
-    console.log('selectedFileIds', selectedFileIds);
+    console.log('roles', roles);
 
-    const { token, baseUrl }  = useAuth();
 
     const selectOptions = [
     {
@@ -56,29 +63,43 @@ const ManageAssistant = ({assistant, mutateData}) => {
         vector_store_ids = assistant.tool_resources.file_search.vector_store_ids;           
     }
 
-    const { createSuccessNotice, createErrorNotice } = useDispatchWordpress( noticesStore );
-
-    const { addButton, hideButton } = useHeader();
-
-    const saveButtonClickRef = useRef(null);
+    const { createSuccessNotice, createErrorNotice, createInfoNotice } = useDispatchWordpress( noticesStore );
 
     useEffect(() => {
-        const saveButtonDisabled = !(prompt && name && selectedFileIds.length > 0) ? "disabled" : "";
-        const saveButtonClassName = "btn btn-sm btn-accent btn-outline mx-1 " + saveButtonDisabled;
-        saveButtonClickRef.current = handleCreateAssistant;
-        const button = {
-            label: 'Salva assistente corrente',
-            className: saveButtonClassName,
-            onClick: saveButtonClickRef.current
-        };
-        
-        addButton(button);
-        return () => {
-            hideButton(button.label);
-        };
-    }, [assistant, name, prompt, selectedFileIds, assistantType, roles, isPrivate]);
+        if(!assistant) {
+            setSelectedFileIds([]);
+        }
+        if (assistant && assistant.metadata && assistant.metadata.model) {
+            setSelectedModel(assistant.metadata.model);
+        }
+    }, [assistant]);
 
-    const callCreateAssistantApi = async (request) => {
+    const callCreateAssistantApi = async (fileId) => {
+        updateAssistantCreationStatus('creating');
+        let mergedFiles = [...selectedFileIds];
+    
+        if (fileId && fileId !== '') {
+            mergedFiles.push(fileId);
+        }
+    
+        let request = {
+            name: name,
+            prompt: prompt,
+            files: mergedFiles,
+            type: assistantType,
+            model: selectedModel,
+            metadata: {
+                roles: roles,
+                isPrivate: isPrivate.toString()
+            }
+        };
+    
+        if (assistant) {
+            request.id = assistant.id;
+            request.vector_store_ids = vector_store_ids;
+            console.log('handleUploadFinished request', request.files, request.vector_store_ids);
+        }
+    
         console.log('request', request);
         const response = await fetch(`${baseUrl}/wp-json/video-ai-chatbot/v1/` + (assistant ? 'update-assistant/' : 'create-assistant/'), {
             method: 'POST',
@@ -88,13 +109,15 @@ const ManageAssistant = ({assistant, mutateData}) => {
             },
             body: JSON.stringify(request),
         });
-
+    
+        console.log('response', response);
+    
         if (response.ok) {
             createSuccessNotice(
-                __( 'Settings saved.', 'video-ai-chatbot' )
+                __('Settings saved.', 'video-ai-chatbot')
             );
-            
-            if(!assistant) {
+    
+            if (!assistant) {
                 setName('');
                 setPrompt('');
                 setAssistantType('trascrizioni');
@@ -103,86 +126,21 @@ const ManageAssistant = ({assistant, mutateData}) => {
             }
             mutateData();
         } else {
-            createErrorNotice( __('Errore nella creazione dell\'assistente.', 'video-ai-chatbot'));
+            createErrorNotice(__('Errore nella creazione dell\'assistente.', 'video-ai-chatbot'));
         }
-    }
-
-    const handleCreateAssistant = async () => {
-        console.log('handleCreateAssistant', name, prompt, selectedFileIds, assistantType, roles, isPrivate);
-        if(assistant) {
-            console.log('assistant', assistant);
-            let request = {
-                id: assistant.id,
-                name: name,
-                prompt: prompt,
-                files: selectedFileIds,
-                vector_store_ids: vector_store_ids,
-                type: assistantType,
-                metadata: {
-                    isPrivate: isPrivate.toString(),
-                    roles: roles
-                }
-            }
-
-            callCreateAssistantApi(request);
-
-        } else if (!assistant && assistantType === 'trascrizioni') {
-            let request = {
-                name: name,
-                prompt: prompt,
-                files: selectedFileIds,
-                type: assistantType,
-                metadata: {
-                    roles: roles
-                }
-            }
-
-
-            callCreateAssistantApi(request);
-
-        }  else {
-            setUploadStarted(true);
-        }
-
+        setSelectedFileIds([]);
+        dispatch(setSelectedAssistant(null));
+        updateAssistantCreationStatus(null);
     };
-
-    const handleUploadFinished = useCallback((fileId) => {
-        let fileIds = [];
-        if(fileId) {
-            fileIds = [...selectedFileIds, fileId];
-            setSelectedFileIds(fileIds);
-        } else {
-            createErrorNotice( __('Errore nel caricamento del file', 'video-ai-chatbot'));
-            return;
-        }
-        let request = {
-            name: name,
-            prompt: prompt,
-            files: fileIds,
-            type: assistantType,
-            metadata: {
-                roles: roles,
-                isPrivate: isPrivate.toString()
-            }
-        }
-        setUploadStarted(false);
-        callCreateAssistantApi(request);
-    },[selectedFileIds, name, prompt, assistantType, isPrivate, roles, assistant]);
+    
+    useListener('uploaded_file_id', callCreateAssistantApi);
 
     const handleSelectTranscriptions = useCallback((transcriptions) => {
-        console.log('handleSelectTranscriptions transcriptions', transcriptions);
         const files = transcriptions?.map(({ file_id }) => file_id);
         console.log('handleSelectTranscriptions files', files);
-        setSelectedFileIds(files || []);
-    }, [selectedFileIds, assistant]);
+        setSelectedFileIds(files);
+    }, [selectedFileIds, assistant, setSelectedFileIds]);
 
-    const handleFileDataFetched = useCallback((file_name, file_content, file_id) => {
-        console.log('handleFileDataFetched', file_name, file_content, file_id);
-        if(file_id === '') return;
-        let fileIds = [...selectedFileIds, file_id];
-        console.log('handleFileDataFetched fileIds', fileIds);  
-        setSelectedFileIds([...selectedFileIds, file_id]);
-    },[selectedFileIds, assistant]);
 
     const setAssistantMetadata = (roleName, value) => {
         let newRoles = rolesArray;
@@ -200,7 +158,7 @@ const ManageAssistant = ({assistant, mutateData}) => {
     let header = assistant ? "Modifica Assistente" : "Nuovo Assistente";
     return (
     <>
-    <Panel header={header} className='assistant flex-1 w-full mr-1 h-full overflow-y-auto'>
+    <Panel header={header} className='assistant flex-1 w-full mr-1 h-full overflow-y-auto text-black'>
         <PanelBody className='relative flex flex-col h-full'>
             { !assistant && (
                 <>
@@ -214,16 +172,40 @@ const ManageAssistant = ({assistant, mutateData}) => {
             )}
                 <TextControl
                     label="Nome"
+                    className='text-black'
                     value={  name }
                     onChange={ (value) => setName(value) }
                 />
                 <br />
                 <TextareaControl
                     label="Prompt"
+                    className='text-black'
                     help="Inserisci le istruzioni per l'assistente."
                     value={ prompt }
                     onChange={ (value) => setPrompt(value) }
                 />
+                    {isLoading && <p>Caricamento modelli...</p>}
+                    {isError && <p>Errore nel caricamento dei modelli.</p>}
+                    {models && (
+                        <>
+                            <label className='text-xs font-medium leading-tight uppercase inline-block mb-2 p-0'>
+                                Seleziona Modello GPT
+                            </label>
+                            <select
+                                className='box-border w-full text-slate-600 bg-white border border-slate-300 appearance-none rounded-lg px-3.5 py-2.5 outline-none text-sm'
+                                label="Seleziona Modello GPT"
+                                onChange={e => setSelectedModel(e.target.value)}
+                                value={selectedModel}
+                            >
+                                <option value="">Seleziona Modello GPT</option>
+                                {models.map(model => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.id}
+                                    </option>
+                                ))}
+                            </select>
+                        </>
+                    )}
                 <br />
                 {assistantType === 'trascrizioni' && (
                     <>
@@ -259,30 +241,28 @@ const ManageAssistant = ({assistant, mutateData}) => {
                 )}
         </PanelBody>
     </Panel>
-    <Panel className='flex-1 w-full mr-1 h-full overflow-y-auto'>
-        <PanelBody> 
-            <div >
-                {assistantType === 'preventivi' && (                    
-                    <div>
-                        { assistant && (
-                            <FetchableAssistantFileForm vector_stores_ids={vector_store_ids} 
-                                                        editable={false} 
-                                                        onFileDataFetched={handleFileDataFetched}/>
-                        )}
-                        { !assistant && (
-                            <UploadAssistantFile shouldUpload={uploadStarted} onUploadFinished={handleUploadFinished} />
-                        )}
-                    </div>
-                )}
-                {assistantType === 'trascrizioni' && (
-                    <div >
-                        <h2>Seleziona Trascrizioni</h2>
-                        <TranscriptionSelector onSelectionChange={handleSelectTranscriptions} assistant={assistant} />
-                    </div>
-                )}
-            </div>
+
+    {assistantType === 'preventivi' && (     
+        <Panel className='flex-1 w-full mr-1 h-min overflow-y-auto'>
+            <PanelBody>              
+                <UploadAssistantFile assistant={assistant} />
             </PanelBody>
-    </Panel>
+        </Panel>
+    )}
+
+    {assistantType === 'trascrizioni' && (
+
+        <Panel className="flex-1 w-full h-min max-h-[48rem] mr-1 overflow-y-scroll">
+            <PanelBody initialOpen={ true } title='Seleziona Trascrizioni'> 
+                <TranscriptionSelector onSelectionChange={handleSelectTranscriptions} assistant={assistant} />
+            </PanelBody>
+            <PanelBody title="Carica file" icon={ more } > 
+                <UploadAssistantFile assistant={assistant}  />
+            </PanelBody>
+        </Panel>
+
+    )}
+
     </>
     );
 };

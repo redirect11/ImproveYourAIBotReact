@@ -7,7 +7,11 @@ export const ConfirmDeleteTranscription = ({ fileName, onConfirm, onCancel, clos
     return (
         <div>
             <p>Sei sicuro di voler cancellare la trascrizione "{videoTitle}"?</p>
-            <button className="btn btn-primary" onClick={() => onConfirm(fileName, closeModal)}>Sì</button>
+            <button className="btn btn-primary" 
+                    onClick={() => { 
+                        closeModal();
+                        onConfirm(fileName, closeModal);
+                    }}>Sì</button>
             <button className="btn btn-secondary mr-0" onClick={() => onCancel(closeModal)}>No</button>
         </div>
     );

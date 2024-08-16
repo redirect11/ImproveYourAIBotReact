@@ -18,7 +18,8 @@ const useAssistants = () => {
         error, 
         isLoading,
         mutate,
-        needsLogin 
+        needsLogin,
+        isValidating
     } = useFetchData('/wp-json/video-ai-chatbot/v1/assistants');
 
     
@@ -42,6 +43,7 @@ const useAssistants = () => {
         data: assistants,
         needsLogin,
         mutate,
+        isValidating,
         needsOpenAiToken: !data?.success && data?.message === 'OpenAI client not initialized'
     }
     

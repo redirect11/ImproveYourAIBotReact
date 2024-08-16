@@ -4,8 +4,7 @@ const flowbite = require("flowbite-react/tailwind");
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     mode: 'jit',
-    purge: ['./src/**/*.{js,jsx}', '../assets/app.html', flowbite.content()],
-    content: ['./src/**/*.{js,jsx}', '../assets/app.html',  flowbite.content()],
+    content: ['./src/**/*.{js,jsx}', '../assets/app.html',  flowbite.content(), './node_modules/ImproveYourAiChatbotFrontend/src/**/*.{js,jsx}'],
     theme: {
         fontSize: {
             xs: '0.70rem',

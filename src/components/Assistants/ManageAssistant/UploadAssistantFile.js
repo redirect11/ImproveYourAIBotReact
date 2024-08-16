@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Button, Spinner } from '@wordpress/components';
 import { FormFileUpload } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import AssistantFileForm from './AssistantFileForm';
 import PropTypes from 'prop-types';
-import useUploadFile from '../../../hooks/useUploadFile';
-import FetchableAssistantFileForm from './FetchableAssistantFileForm';
-import { useSelector } from 'react-redux';
+import useAuth from '../../../hooks/useAuth';
+import { uploadAuthFile } from '../../../hooks/fetcher';
+import { useHeader } from '../../HeaderContext';
+import useGetFile from '../../../hooks/useGetFile';
+import { useBus } from 'react-bus';
 
 const Result = ({ status }) => {
         if (status === "success") {
@@ -20,16 +22,19 @@ const Result = ({ status }) => {
         }
 };
 
-const UploadAssistantFile = ({ assistant, shouldUpload, onUploadFinished }) => {
+const UploadAssistantFile = ({ assistant }) => {
 
     const [fileInfo, setFileInfo] = useState({file_id: '', file_name: '', file_text: ''});
-    const [dataChanged, setDataChanged] = useState(false);
+    const { token, baseUrl } = useAuth();
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
 
-    const checkCanUpload = () => {
-        return shouldUpload && dataChanged;
-    }
 
-    const {data, error, isLoading} = useUploadFile({ file: fileInfo, shouldUpload: checkCanUpload() });
+    const bus = useBus();
+
+    const { addButton, hideButton, updateAssistantCreationStatus } = useHeader();
 
     let vector_store_ids = [];
     if(assistant && assistant.tool_resources && assistant.tool_resources.file_search && assistant.tool_resources.file_search.vector_store_ids) {
@@ -37,38 +42,87 @@ const UploadAssistantFile = ({ assistant, shouldUpload, onUploadFinished }) => {
         console.log('vector_store_ids', vector_store_ids);
     }
 
-    let message = '';
+    const { file_name, file_content, file_id, error: getFileError, isLoading: getFileLoading, mutate } = useGetFile(!isEditing && vector_store_ids?.length > 0 ? vector_store_ids[0] : null);
+
+    const saveButtonClickRef = useRef(null);
 
     useEffect(() => {
-        if(shouldUpload && !dataChanged) {
-                onUploadFinished(null);
+        if(file_name && file_content && file_id){
+            console.log('UploadAssistantFile - useEffect: file_name, file_id', file_name, file_id);
+            setFileInfo({file_id, file_name, file_text: file_content});
+        } else if(getFileError) {
+            console.log('Error fetching file');
         }
-    }, [shouldUpload, dataChanged]);
-
-    if(data) {
-        if(data.error) {
-            message = `Error: ${data.error} message: ${data.message}`;
-        } else {
-            message = `File uploaded successfully. File ID: ${data.file_id}`;
-        }
-    } else if(error){
-        message = `Error: ${error}`;
-    }
+    }, [file_name, file_content, file_id]);
 
     useEffect(() => {
-        if(data){
-            if(data.error) {
-                onUploadFinished(null);
-                return;
-            } else {
-                onUploadFinished(data.file_id);
+        const saveButtonDisabled = (isLoading) ? "disabled" : "";
+        const saveButtonClassName = "btn btn-sm btn-accent btn-outline mx-1 " + saveButtonDisabled;
+        saveButtonClickRef.current = handleUploadStart;
+        const button = {
+            id: 'create',
+            label: 'Salva assistente corrente',
+            className: saveButtonClassName,
+            onClick: saveButtonClickRef.current
+        };
+        
+        addButton(button);
+
+        return () => {
+            hideButton(button.label);
+        };
+        
+    }, [assistant, fileInfo, file_name, file_content, file_id, handleUploadStart]);
+
+    useEffect(() => {
+        setIsEditing(false);
+    }, [assistant]);
+
+
+    const handleUploadStart = useCallback(() => {
+        console.log('handleUploadStart fileInfo', fileInfo);
+        setIsLoading(true);
+        if(isEditing) {
+            updateAssistantCreationStatus('uploading');
+            const formData = new FormData();
+            if(baseUrl && token){
+                const updatedFile = new Blob([fileInfo.file_text], { type: "text/plain" });
+                formData.append('file', new File([updatedFile], fileInfo.file_name));
+                if(fileInfo.file_id){
+                    console.log('fileInfo.file_id', fileInfo.file_id);
+                    formData.append('file_id', fileInfo.file_id);
+                }
             }
-            setFileInfo({file_name: '', file_text: ''}); 
-        } else if(error){
-            onUploadFinished(null);
-            setFileInfo({file_name: '', file_text: ''});
+            uploadAuthFile(`${baseUrl}/wp-json/video-ai-chatbot/v1/upload-file/`, token, formData).then(data => {
+                console.log('data', data);
+                if(data) {
+                    if(data.error) {
+                        setMessage(`Error: ${data.error} message: ${data.message}`);
+                        bus.emit('uploaded_file_id', null);
+                        setError('Error uploading file');  
+                    } else {
+                        bus.emit('uploaded_file_id', data.file_id);
+                        setMessage(`File uploaded successfully. File ID: ${data.file_id}`);
+                        setFileInfo({...fileInfo, file_id: data.file_id});
+                    }
+                } 
+                setIsLoading(false);
+            }).catch(error => {
+                console.log('error', error);
+                setError('Error uploading file');
+                setIsLoading(false);
+                setMessage(`Error: ${error} message: ${error}`);
+                setIsEditing(false);
+                bus.emit('uploaded_file_id', null);
+                mutate();
+            });
+        } else {
+            setMessage('No changes to upload');
+            setIsLoading(false);
+            bus.emit('uploaded_file_id', fileInfo.file_id === '' ? null : fileInfo.file_id);
         }
-    }, [data, error, isLoading]);
+    }, [fileInfo, baseUrl, token]);
+
 
 
     const handleFileChange = (event) => {
@@ -82,15 +136,14 @@ const UploadAssistantFile = ({ assistant, shouldUpload, onUploadFinished }) => {
                 file_text: e.target.result
             }
             console.log('before', fileData);
-            setFileInfo(fileData)
-            setDataChanged(true);
+            setFileInfo({...fileInfo, file_text: fileData.file_text, file_name: fileData.file_name});
+            setIsEditing(true);
             console.log('after', fileData);
         };
     };
 
     return ( 
         <>
-            <h3>Carica File Preventivi</h3>
             <FormFileUpload
                 accept="application/JSON, text/*"
                 onChange={ handleFileChange } 
@@ -102,33 +155,20 @@ const UploadAssistantFile = ({ assistant, shouldUpload, onUploadFinished }) => {
                     </div>
                 )}
             >
-                { __( 'Carica trascrizione', 'video-ai-chatbot') }
+                { __( 'Carica file', 'video-ai-chatbot') }
             </FormFileUpload>
-            { !assistant && !isLoading &&
+            {message && <p className='text-black'>{message}</p>}
+            {!isLoading && !getFileLoading &&
                 <AssistantFileForm file_name={fileInfo.file_name} 
-                               file_text={fileInfo.file_text} 
-                               editable={true} 
-                               onFileTextChange={(text) => { setFileInfo({...fileInfo, file_text: text}) }}/>
-            } 
-            { assistant && !isLoading && 
-                <FetchableAssistantFileForm vector_stores_ids={vector_store_ids} 
-                                            file_name={fileInfo.file_name} 
-                                            file_text={fileInfo.file_text} 
-                                            editable={true} 
-                                            onFileDataFetched={(name, text, id) => { setFileInfo({file_id: id, file_name: name, file_text: text}) }}
-                                            onFileTextChange={ (text) => { 
-                                                console.log('text', text);
-                                                setFileInfo({...fileInfo, file_text: text});
-                                                setDataChanged(true);
-                                            } } />
+                            file_text={fileInfo.file_text} 
+                            editable={true} 
+                            onFileTextChange={(text) => { 
+                                setIsEditing(true);
+                                setFileInfo({...fileInfo, file_text: text}) 
+                            }}/>
             }
-
-            { isLoading ?  <Spinner style={{ height: 'calc(4px * 20)', width: 'calc(4px * 20)' }} /> :
-                <>
-                    { error ? <Result status="fail" /> : <Result status={data ? "success" : (isLoading ? "uploading" : "")} /> } 
-                </>
-            }
-            {message && <p>{message}</p>}
+            { (isLoading || getFileLoading) && <Spinner style={{ height: 'calc(4px * 20)', width: 'calc(4px * 20)' }} /> }
+            
         </>
     );
 };

@@ -255,6 +255,7 @@ button, select {
 textarea, 
 .assistant .components-textarea-control__input, 
 .assistant .components-text-control__input,
+.assistant .components-select-control__input,
 .transcription .components-textarea-control__input, 
 .transcription .components-text-control__input,
 .settings .components-textarea-control__input, 
@@ -276,7 +277,7 @@ textarea,
 
 textarea, 
 .assistant .components-textarea-control__input,
-.transcription .components-textarea-control__input
+.transcription .components-textarea-control__input,
 .settings .components-textarea-control__input {
 	min-height: 5em;
 	line-height: 1.5; /* leading-6 */

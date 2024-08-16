@@ -18,8 +18,8 @@ const useFetchAllVectorStoreFiles = (vectorStoreIds) => {
 
   console.log('useFetchAllVectorStoreFiles data', data);
   return { 
-           data: data?.data, 
-           error: data && data.error ? data?.data : error, 
+           data: data?.error ? null : data, 
+           error: data?.error ? data.error : error, 
            isLoading,
            mutate
          };

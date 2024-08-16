@@ -8,7 +8,7 @@ export const useHeader = () => useContext(HeaderContext);
 export const HeaderProvider = ({ children }) => {
     const [headerButtons, setHeaderButtons] = useState([]);
     const [transcriptionsUploadStatus, setTranscriptionsUploadStatus] = useState("");
-    const [files, setFiles] = useState([]);
+    const [assistantCreationStatus, setAssistantCreationStatus] = useState("");
 
 
     const addButton = (button) => {
@@ -31,13 +31,19 @@ export const HeaderProvider = ({ children }) => {
         setTranscriptionsUploadStatus(status);
     };
 
+    const updateAssistantCreationStatus = (status) => {
+        setAssistantCreationStatus(status);
+    };
+
     return (
         <HeaderContext.Provider value={{ 
                 headerButtons, 
                 transcriptionsUploadStatus, 
+                assistantCreationStatus,
                 addButton, 
                 hideButton, 
-                updateTranscriptionsUploadStatus 
+                updateTranscriptionsUploadStatus,
+                updateAssistantCreationStatus, 
             }}>
             {children}
         </HeaderContext.Provider>

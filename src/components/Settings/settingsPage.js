@@ -232,10 +232,7 @@ const SettingsPage = () => {
                     <br />
                     <label>Sincronizza le trascrizioni con OpenAI</label>
                     <br />
-                    <Button variant="secondary" onClick={ () => {
-                        //setIsLoading(true);
-                        syncTranscriptions();
-                    }}>
+                    <Button variant="secondary" onClick={ syncTranscriptions }>
                         Sincronizza Trascrizioni
                     </Button>
                     <RemoteOperationButton buttonText="Cancel all runs" callback={cancelAllRuns}/>

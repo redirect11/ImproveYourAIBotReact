@@ -11,6 +11,8 @@ const TranscriptionSelector = ({ onSelectionChange, assistant }) => {
 
   const [selectedRows, setSelectedRows] = useState([]);
 
+  //const filteredData = data.filter((transcription) => vectorStoreData.some((file) => file.id === transcription.file_id));
+
   useEffect(() => {
     if(vectorStoreData) {
       console.log('TranscriptionSelector useEffect vectorStoreData', vectorStoreData);

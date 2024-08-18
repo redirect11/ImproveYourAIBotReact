@@ -15,6 +15,8 @@ const settings = new Map([
     ["video_ai_chatbot_theme", {name: "Tema del Chatbot", type: AsyncSelectControl, description: "Il tema del chatbot", url: `/wp-json/video-ai-chatbot/v1/get-css-themes`}],
     ["openai_api_key_field", {name: "Chiave API OpenAI", type: TextControl, description: "La chiave API di OpenAI", passwordProtected: true}],
     ["video_ai_whatsapp_assistants", {name: "Associare l'assistente a WhatsApp", type: null, description: "Associare l'assistente a WhatsApp", passwordProtected: true}], 
+    ["video_ai_instagram_assistants", {name: "Associare l'assistente a Instagram", type: null, description: "Associare l'assistente a Instagram", passwordProtected: true}], 
+
 ]);
 
 export default settings;

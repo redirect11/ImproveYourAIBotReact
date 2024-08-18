@@ -149,7 +149,7 @@ const WhatsappAssistantsSettings = ({ associations, handleChange }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {assistants ? associations.map((assoc, index) => (
+                            {assistants && associations ? associations.map((assoc, index) => (
                                                                 <tr key={index}>
                                     <td className="py-2 px-4 truncate text-center" style={{ maxWidth: '150px' }}>
                                         {getAssistantName(assoc.assistant)}

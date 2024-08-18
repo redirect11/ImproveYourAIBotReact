@@ -14,6 +14,7 @@ import WhatsappAssistantsSettings from './WhatsappAssistantsSettings';
 import { setTranscriptions } from '../../redux/slices/TranscriptionsSlice';
 import RemoteOperationButton from '../RemoteOperationButton';
 import AddHandoverNumbers from './AddHandoverNumbers';
+import InstagramAssistantsSettings from './InstagramAssistantSettings';
 
 const SettingsPage = () => {
     const dispatch = useDispatch();
@@ -25,6 +26,7 @@ const SettingsPage = () => {
     const [isSaving, setIsSaving] = useState(false);   
     const [saveError, setSaveError] = useState('');
     const [associations, setAssociations] = useState(null);
+    const [instagramAssociations, setInstagramAssociations] = useState(null);
 
     console.log('options', options);
     console.log('formValues', formValues);
@@ -49,6 +51,10 @@ const SettingsPage = () => {
                 console.log('video_ai_whatsapp_assistants', options['video_ai_whatsapp_assistants']);
                 setAssociations(options['video_ai_whatsapp_assistants']);
             }
+            if(options['video_ai_instagram_assistants']) {
+                console.log('video_ai_instagram_assistants', options['video_ai_instagram_assistants']);
+                setInstagramAssociations(options['video_ai_instagram_assistants']);
+            }
         }
     }, [options]);
 
@@ -64,6 +70,10 @@ const SettingsPage = () => {
             setAssociations(value);
         }
 
+        if(id === 'video_ai_instagram_assistants') {
+            setInstagramAssociations(value);
+        }
+
         setFormValues(prevState => prevState.map(option => option.id === id ? { ...option, value } : option));
     };
 
@@ -75,7 +85,7 @@ const SettingsPage = () => {
             setIsSaving(true);
             const formData = new FormData();
             formValues.forEach(({ id, value }) => {
-                if(id === 'video_ai_whatsapp_assistants') {
+                if(id === 'video_ai_whatsapp_assistants' || id === 'video_ai_instagram_assistants') {
                     value = JSON.stringify(value);
                 }
                 console.log('append', id, value);   
@@ -204,6 +214,15 @@ const SettingsPage = () => {
                     </>
                 )}
             </div>
+            {instagramAssociations &&
+            <div className="w-full flex-1 max-w-full">
+                    <SettingsPanel title={'Instagram Settings'} open={true}>
+                        <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                            <InstagramAssistantsSettings associations={instagramAssociations} handleChange={handleChange}/>
+                        </div>
+                    </SettingsPanel>
+                </div>
+            }
             {associations && 
                 <div className="w-full flex-1 max-w-full">
                     <SettingsPanel title={'Whatsapp Settings'} open={true}>
